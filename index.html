@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Гадские выборы — Дмитровский округ</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;800&family=Rubik:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#eef0f3; --panel:#ffffff; --card:#ffffff;
+    --text:#1c1c1e; --muted:#6b7280; --accent:#2563eb; --border:#e2e5ea;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  body{background:var(--bg); color:var(--text); font-family:Rubik,system-ui,sans-serif; height:100vh; height:100dvh; display:flex; flex-direction:column; overflow:hidden}
+
+  header{padding:14px 22px; background:#1f2430; border-bottom:3px solid var(--accent)}
+  h1{font-family:Unbounded,Rubik,sans-serif; font-weight:800; font-size:clamp(20px,4vw,40px); letter-spacing:1px; line-height:1.1; color:#fff; text-transform:uppercase}
+  .sub{margin-top:4px; font-size:13px; color:#9aa3b2}
+  .sub b{color:#e5e7eb}
+
+  main{flex:1; display:flex; min-height:0}
+  #sidebar{width:390px; min-width:330px; background:var(--panel); display:flex; flex-direction:column; border-right:1px solid var(--border)}
+  #map{flex:1; background:#f8f9fa; position:relative}
+  #mapLoading{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#9ca3af; font-size:14px; z-index:500}
+
+  #fatal{position:fixed; inset:0; background:#fff; z-index:9999; display:none; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:24px; text-align:center}
+  #fatal h2{font-family:Unbounded,Rubik,sans-serif; font-size:20px; color:#1c1c1e}
+  #fatal p{color:#6b7280; font-size:14px; max-width:440px; line-height:1.55}
+  #fatal button{background:var(--accent); color:#fff}
+
+  .drag-handle{display:none; width:46px; height:5px; border-radius:99px; background:#d1d5db; margin:8px auto 2px}
+  .tools{padding:12px; display:flex; flex-direction:column; gap:8px; border-bottom:1px solid #e5e7eb}
+  #search{width:100%; padding:10px 12px; border-radius:10px; border:1px solid #d1d5db; background:#fff; color:var(--text); font-size:16px; outline:none}
+  #search:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+  .chips{display:flex; gap:6px; overflow-x:auto; flex-wrap:nowrap; padding-bottom:2px; scrollbar-width:none; -webkit-overflow-scrolling:touch}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{
+    font-size:11px; padding:5px 10px; border-radius:999px; cursor:pointer; user-select:none; flex:0 0 auto;
+    border:1.5px solid var(--c,#888); color:#374151; background:#fff; display:flex; align-items:center; gap:5px;
+  }
+  .chip i{width:9px;height:9px;border-radius:50%;background:var(--c);display:inline-block}
+  .chip.on{background:var(--c); color:#111827; font-weight:700}
+  .btnrow{display:flex; gap:6px; flex-wrap:wrap}
+  button,.btn{cursor:pointer; border:none; border-radius:8px; padding:9px 12px; font-family:Rubik; font-weight:600; font-size:13px; transition:transform .08s}
+  button:active{transform:scale(.97)}
+  .b-add{background:var(--accent); color:#fff; flex:1}
+  .b-exp,.b-imp{background:#fff; color:#374151; border:1px solid #d1d5db}
+  .b-grp{background:#7c3aed; color:#fff}
+  .b-rst{background:#f3f4f6; color:#374151; border:1px solid #d1d5db}
+
+  .groupsPanel{display:none; flex-direction:column; gap:6px; padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#f9fafb}
+  .groupsPanel.show{display:flex}
+  .gp-title{font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-bottom:2px}
+  .grow{display:flex; gap:6px; align-items:center}
+  .gcolor{width:36px; height:30px; border:1px solid #d1d5db; border-radius:6px; padding:2px; background:#fff; cursor:pointer}
+  .gname{flex:1; padding:6px 8px; border:1px solid #d1d5db; border-radius:6px; font-size:13px; font-family:Rubik; outline:none; min-width:0}
+  .gname:focus{border-color:var(--accent)}
+  .gcount{font-size:11px; color:#6b7280; min-width:24px; text-align:center}
+  .gdel{background:#fef2f2; color:#dc2626; border:1px solid #fecaca; padding:5px 9px; font-size:12px}
+  .gadd{background:#fff; border:1px dashed #9ca3af; color:#374151; width:100%}
+
+  #counter{font-size:12px; color:var(--muted); padding:6px 14px 4px}
+  .progress{height:8px; background:#e5e7eb; border-radius:99px; overflow:hidden; margin:0 14px 6px}
+  .progress i{display:block; height:100%; background:#16a34a; transition:width .3s; border-radius:99px}
+
+  #list{flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:8px; -webkit-overflow-scrolling:touch}
+  #list::-webkit-scrollbar{width:8px} #list::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
+  .card{background:var(--card); border:1px solid #e5e7eb; border-left:5px solid var(--c); border-radius:10px; padding:10px 12px; cursor:pointer}
+  .card:hover{box-shadow:0 2px 10px rgba(0,0,0,.10); transform:translateX(2px)}
+  .card.closed{background:#f0fdf4; border-color:#bbf7d0; border-left-color:#22c55e}
+  .card .top{display:flex; align-items:center; gap:8px; margin-bottom:5px; flex-wrap:wrap}
+  .uik-badge{font-family:Unbounded; font-size:12px; padding:3px 9px; border-radius:6px; background:var(--c); color:#111827; font-weight:800}
+  .zone-tag{font-size:10px; color:var(--tc,#374151); font-weight:700; text-transform:uppercase; letter-spacing:.5px}
+  .closed-badge{font-size:10.5px; color:#15803d; font-weight:700; background:#dcfce7; padding:2px 8px; border-radius:99px}
+  .nocoord{font-size:10px; color:#b91c1c; font-weight:700}
+  .addr{font-size:12.5px; color:#374151; line-height:1.35}
+  .card .acts{display:flex; gap:6px; margin-top:8px; flex-wrap:wrap}
+  .mini{font-size:11px; padding:5px 9px; border-radius:6px}
+  .m-go{background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe}
+  .m-rt{background:#ecfdf5; color:#059669; border:1px solid #a7f3d0; text-decoration:none}
+  .m-ed{background:#fff1f2; color:#e11d48; border:1px solid #fecdd3}
+  .m-cl{background:#ecfdf5; color:#059669; border:1px solid #a7f3d0}
+  .m-op{background:#fffbeb; color:#b45309; border:1px solid #fde68a}
+
+  .leaflet-popup-content-wrapper{background:#fff; color:#111827; border:1px solid #d1d5db; border-radius:10px; box-shadow:0 4px 16px rgba(0,0,0,.15)}
+  .leaflet-popup-tip{background:#fff}
+  .pop{min-width:220px; font-family:Rubik}
+  .pop-uik{font-family:Unbounded; font-size:16px; color:var(--accent); margin-bottom:4px}
+  .pop-addr{font-size:12.5px; line-height:1.4; margin-bottom:6px; color:#374151}
+  .pop-zone{font-size:11px; font-weight:700; margin-bottom:4px}
+  .pop-st{font-size:11.5px; font-weight:700; margin-bottom:9px}
+  .pop .acts{display:flex; gap:6px; flex-wrap:wrap}
+
+  #overlay,#closeOverlay{position:fixed; inset:0; background:rgba(15,23,42,.5); display:none; z-index:2000; align-items:center; justify-content:center}
+  #overlay.show,#closeOverlay.show{display:flex}
+  #modal,#closeModal{width:min(480px,92vw); background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:20px; box-shadow:0 10px 40px rgba(0,0,0,.2); max-height:90vh; overflow-y:auto}
+  #modal h2,#closeModal h2{font-family:Unbounded; font-size:18px; margin-bottom:14px; color:#111827}
+  .fld{margin-bottom:11px}
+  .fld label{display:block; font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-bottom:4px}
+  .fld input,.fld select{width:100%; padding:9px 11px; border-radius:8px; border:1px solid #d1d5db; background:#fff; color:var(--text); font-size:16px; outline:none; font-family:Rubik}
+  .fld input:focus,.fld select:focus{border-color:var(--accent)}
+  .coords{display:flex; gap:8px} .coords .fld{flex:1}
+  .chk{display:flex; align-items:center; gap:8px; font-size:13px !important; text-transform:none !important; letter-spacing:0 !important; color:var(--text) !important; cursor:pointer}
+  .chk input{width:auto !important}
+  .closedRow{border:1px dashed #d1d5db; border-radius:10px; padding:10px; background:#f9fafb}
+  .m-actions{display:flex; gap:8px; margin-top:14px; flex-wrap:wrap}
+  .b-save{background:#16a34a; color:#fff; flex:1}
+  .b-move{background:#f3f4f6; color:#374151; border:1px solid #d1d5db}
+  .b-find{background:#0d9488; color:#fff}
+  .b-del{background:#fef2f2; color:#dc2626; border:1px solid #fecaca}
+  .b-can{background:#f3f4f6; color:#374151; border:1px solid #d1d5db}
+  #closeTitle{font-size:13px; color:#374151; line-height:1.45}
+
+  #pickBanner{
+    position:fixed; top:14px; left:50%; transform:translateX(-50%); z-index:3000; display:none;
+    background:#fff; color:#1f2937; font-weight:600; padding:12px 18px; border-radius:10px;
+    border:2px solid var(--accent); box-shadow:0 4px 18px rgba(0,0,0,.18); align-items:center; gap:12px; font-size:14px;
+    max-width:92vw;
+  }
+  #pickBanner.show{display:flex}
+  #pickBanner button{background:var(--accent); color:#fff; padding:6px 12px; font-size:12px}
+
+  #panelToggle{display:none; position:fixed; right:14px; bottom:calc(14px + env(safe-area-inset-bottom)); z-index:1500; background:#1f2430; color:#fff; padding:13px 20px; border-radius:999px; font-size:14px; box-shadow:0 4px 18px rgba(0,0,0,.35)}
+
+  #toast{
+    position:fixed; bottom:18px; left:50%; transform:translateX(-50%); z-index:3100;
+    background:#1f2937; color:#fff; font-weight:600; padding:11px 20px; border-radius:10px;
+    opacity:0; pointer-events:none; transition:opacity .3s; box-shadow:0 4px 16px rgba(0,0,0,.25);
+    max-width:90vw; text-align:center;
+  }
+  #toast.show{opacity:1}
+  .leaflet-container{font:inherit}
+  .credit{background:rgba(255,255,255,.85); color:#555; font:10px Rubik; padding:3px 9px; border-radius:8px}
+  .disclaimer{font-size:10px; color:#9ca3af; padding:6px 14px; border-top:1px solid #e5e7eb}
+
+  @media(max-width:820px){
+    header{padding:10px 14px}
+    h1{font-size:20px}
+    .sub{font-size:11px}
+    main{position:relative; flex-direction:column}
+    #map{flex:1; min-height:0}
+    #sidebar{
+      position:fixed; left:0; right:0; bottom:0; width:100%; max-height:66vh; z-index:1400;
+      transform:translateY(103%); transition:transform .25s ease;
+      border-radius:16px 16px 0 0; box-shadow:0 -6px 30px rgba(0,0,0,.25); border-right:none;
+      padding-bottom:env(safe-area-inset-bottom);
+    }
+    #sidebar.open{transform:translateY(0)}
+    .drag-handle{display:block}
+    #panelToggle{display:block}
+    .card{padding:12px 14px}
+    .mini{padding:8px 12px; font-size:12px}
+    #overlay,#closeOverlay{align-items:flex-end}
+    #modal,#closeModal{width:100%; max-width:100%; border-radius:16px 16px 0 0; max-height:88vh}
+    #toast{bottom:calc(76px + env(safe-area-inset-bottom))}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🗳️ Гадские выборы</h1>
+  <div class="sub">Карта избирательных участков · <b>Дмитровский муниципальный округ Московской области</b> · установка камер</div>
+</header>
+
+<main>
+  <div id="sidebar">
+    <div class="drag-handle" onclick="togglePanel()"></div>
+    <div class="tools">
+      <input id="search" placeholder="🔎 Поиск: номер УИК или адрес…">
+      <div class="chips" id="statusChips"></div>
+      <div class="chips" id="chips"></div>
+      <div class="groupsPanel" id="groupsPanel"></div>
+      <div class="btnrow">
+        <button class="b-add" onclick="startAdd()">➕ Добавить</button>
+        <button class="b-grp" onclick="toggleGroups()">🎨 Группы</button>
+        <button class="b-exp" onclick="exportJSON()">⬇</button>
+        <button class="b-imp" onclick="document.getElementById('impFile').click()">⬆</button>
+        <button class="b-rst" onclick="resetData()">↺</button>
+        <input type="file" id="impFile" accept=".json" style="display:none" onchange="importJSON(event)">
+      </div>
+    </div>
+    <div id="counter"></div>
+    <div class="progress"><i id="pbar"></i></div>
+    <div id="list"></div>
+    <div class="disclaimer">После посещения УИК — «🔒 Закрыть». При публикации на GitHub Pages правки видны всем автоматически (☁️ в счётчике).</div>
+  </div>
+  <div id="map"><div id="mapLoading">⏳ Загрузка карты…</div></div>
+</main>
+
+<button id="panelToggle" onclick="togglePanel()">📋 Участки</button>
+
+<div id="fatal">
+  <h2>😕 Карта не загрузилась</h2>
+  <p>Проверьте подключение и нажмите «Повторить». Файл должен быть открыт в браузере, а не в предпросмотре «Файлов» — лучший вариант открывать сайт по ссылке GitHub Pages.</p>
+  <button onclick="location.reload()">🔄 Повторить</button>
+</div>
+
+<div id="pickBanner">📍 Кликните по карте, чтобы поставить точку участка <button onclick="cancelPick()">Отмена</button></div>
+
+<div id="overlay">
+  <div id="modal">
+    <h2 id="modalTitle">Участок</h2>
+    <div class="fld"><label>Номер УИК</label><input id="f-uik" placeholder="например, 3732"></div>
+    <div class="fld"><label>Адрес / место</label><input id="f-addr" placeholder="улица, дом, здание"></div>
+    <div class="fld"><label>Группа</label><select id="f-group"></select></div>
+    <div class="coords">
+      <div class="fld"><label>Широта</label><input id="f-lat"></div>
+      <div class="fld"><label>Долгота</label><input id="f-lng"></div>
+    </div>
+    <div class="fld closedRow">
+      <label>Статус посещения</label>
+      <label class="chk"><input type="checkbox" id="f-closed"> Участок закрыт (посещён)</label>
+      <div style="height:6px"></div>
+      <input id="f-closedby" placeholder="Кто закрыл: Фамилия И.О.">
+    </div>
+    <div class="m-actions">
+      <button class="b-save" onclick="saveModal()">💾 Сохранить</button>
+      <button class="b-find" onclick="geocodeModal()">🎯 Найти адрес</button>
+      <button class="b-move" onclick="movePoint()">📍 Переместить точку</button>
+      <button class="b-del" id="btnDel" onclick="deleteItem()">🗑 Удалить</button>
+      <button class="b-can" onclick="closeModal()">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<div id="closeOverlay">
+  <div id="closeModal">
+    <h2>🔒 Закрытие участка</h2>
+    <div class="fld"><label>Участок</label><div id="closeTitle"></div></div>
+    <div class="fld"><label>Кто закрыл (фамилия, имя)</label><input id="close-name" placeholder="например, Иванов И.И."></div>
+    <div class="m-actions">
+      <button class="b-save" onclick="confirmClose()">🔒 Закрыть участок</button>
+      <button class="b-can" onclick="hideCloseModal()">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ================= ЗАГРУЗЧИК LEAFLET ================= */
+(async function(){
+  const SOURCES=[
+    {css:'vendor/leaflet/leaflet.css', js:'vendor/leaflet/leaflet.js'},
+    {css:'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', js:'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'},
+    {css:'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css', js:'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js'},
+    {css:'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css', js:'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'}
+  ];
+  const loadJs=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error(src));document.head.appendChild(s);});
+  const loadCss=href=>new Promise((res,rej)=>{const l=document.createElement('link');l.rel='stylesheet';l.href=href;l.onload=res;l.onerror=()=>rej(new Error(href));document.head.appendChild(l);});
+  for(const s of SOURCES){
+    try{
+      await loadJs(s.js);
+      if(window.L){ try{await loadCss(s.css);}catch(e){} startApp(); return; }
+    }catch(e){}
+  }
+  const ld=document.getElementById('mapLoading'); if(ld) ld.style.display='none';
+  document.getElementById('fatal').style.display='flex';
+})();
+</script>
+
+<script>
+/* ================= КООРДИНАТЫ (SEED) ================= */
+const SEED=[
+["ул. Маркова, д.6, МОУ Дмитровская СОШ № 9",[253,3723,3724],56.3493598,37.52366],
+["ул. Космонавтов, д.11, МОУ Дмитровская СОШ №8",[265,266,3727],56.3386103,37.5432235],
+["ул. Профессиональная, д. 21, ЦДТ «Радуга»",[247],56.354592,37.5212166],
+["мкр. Аверьянова, д.10, МОУ Дмитровская СОШ № 10",[250,3721,3722],56.3508706,37.527534],
+["ул. Загорская, д. 64, МБУ ЦДК «Созвездие»",[255],56.3410545,37.5260984],
+["ул. Почтовая, д.16, корпус 2, библиотека",[259],56.3656287,37.5327041],
+["ул. Школьная, д.11, МОУ Дмитровская СОШ №1 им. В. И. Кузнецова",[261],56.338896,37.520119],
+["ул. Школьная, д.11, МОУ Дмитровская СОШ №1",[262],56.338896,37.520119],
+["г. Дмитров, ул. Школьная, д.14, МОУ Дмитровская СОШ №5",[3726],56.3380955,37.5211366],
+["ДК «Содружество», ул. Профессиональная, д. 92",[242,3716],56.365672,37.5317409],
+["мкр. ДЗФС, д. 24, МОУ Дмитровская СОШ №3",[243,3717,244],56.36845,37.538107],
+["ул. Внуковская, строение 40, ООО «Дмитров - Кабель»",[245],56.351213,37.5498604],
+["мкр. Махалина, д.15, МОУ Лицей № 4 г. Дмитрова",[248,3719,3720,249],56.3563399,37.5369455],
+["Дмитровская школа ДОСААФ, ул. Старо-Рогачевская, д. 34",[241],56.3541446,37.4987227],
+["мкр. Внуковский, д. 20, МОУ Внуковская СОШ",[246,3718],56.3573202,37.5678931],
+["ул. Комсомольская, д.17а, МОУ Дмитровская СОШ № 2",[257,3725],56.3409247,37.5348659],
+["ул. Большевистская, д.16, ДК «Современник»",[263],56.3427626,37.5355519],
+["ул. Космонавтов, д.33, Дмитровский институт непрерывного образования",[264],56.3417482,37.5458173],
+["ул. Инженерная, д. 24а, гимназия «Дмитров»",[256],56.3381679,37.5292311],
+["ул. Комсомольская, д.33, стадион «Локомотив», помещение ФОК",[258],56.3366966,37.538984],
+["ул. Волгостроевская, д. 2а, филиал МОУ Дмитровская СОШ № 2",[260],56.3319452,37.519826],
+["ул. 2-я Московская, дом 5, ГКУ МО Мособллес Дмитровский филиал",[267],56.3437613,37.5170268],
+["пос. совхоза «Останкино», д.38А, МОУ Останкинская СОШ",[315],56.0565599,37.4022418],
+["с. Озерецкое, МБУ СК «Урожай»",[316],56.0612802,37.4010931],
+["д. Каменка, д.71А, МОУ Каменская СОШ № 1",[317],56.1787344,37.3065022],
+["пос. дома отдыха «Горки», ДК «Бригантина»",[318],56.1942315,37.3448105],
+["Адрес не указан в исходных данных ЦИК",[319],null,null],
+["п. Некрасовский, ул. Парковая, д.1, МОУ Катуаровская СОШ",[3729],56.0990431,37.4977416],
+["п. Некрасовский, ул. Заводская, д.44, ДК «Керамик»",[304],56.0963625,37.5005272],
+["п. Некрасовский, ул. Ушакова, д.27б, завод «Полимерконтейнер»",[305],56.0810358,37.4950487],
+["п. Некрасовский, мкр. Строителей, д.12, ДК «Строитель»",[306],56.093,37.4956],
+["п. Некрасовский, мкр. Трудовая, Дом офицеров",[307],56.093,37.4956],
+["п. Некрасовский, ул. Краснофлотская, д.10",[303],56.0968435,37.4892161],
+["п. Некрасовский, мкр. Строителей, д.10, МОУ Черновская СОШ",[3730],56.093,37.4956],
+["п. Икша, ул. Комсомольская, д. 20а, Дом культуры",[300],56.1742553,37.4984512],
+["п. Икша, ул. Комсомольская, д. 19, СК «Икша»",[301],56.1740124,37.4977685],
+["пос. ОПХ «Ермолино», ул. Центральная, д. 13, Дом культуры",[302],56.1498485,37.490445],
+["п. Икша, ул. Рабочая, д.18, МОУ Икшинская СОШ",[3728],56.1780602,37.4978391],
+["Яхрома, ул. Кирьянова, д.12а, МОУ Яхромская СОШ № 2",[281],56.2911469,37.4772202],
+["Яхрома, ул. Бусалова, д.21, Детский сад № 18 «Бригантина»",[283],56.2948862,37.4726343],
+["Яхрома, ул. Заречная, д. 2, ДК «Яхрома»",[284],56.2906411,37.4862729],
+["Яхрома, ул. Ленина, д.17, Шахматный клуб",[285],56.2852989,37.4850689],
+["Яхрома, ул. Конярова, д.9, Яхромский территориально-медицинский комплекс",[286],56.2854668,37.4789874],
+["Яхрома, мкр. Левобережье, д.17, МОУ Яхромская СОШ №1",[287,322],56.2838118,37.4890419],
+["Яхрома, ул. Большевистская, д.16, стр.5, Яхромская техшкола (общежитие)",[289],56.2790373,37.4829435],
+["Яхрома, ул. Ленина, д. 42, ЗАО «Яхромский автобусный завод»",[290],56.2805064,37.4857258],
+["Яхрома, ул. Семешинская, д.1, МОУ Яхромская СОШ №3",[291],56.2899358,37.5127289],
+["д. Астрецово, ОАО «Гамма»",[292],56.3050846,37.4215343],
+["с. Подъячево, МОУ Подъячевская СОШ",[293],56.2610034,37.252268],
+["с. Ольгово, д.92, помещение ФАП",[294],56.2702585,37.3442629],
+["п. Деденево, ул. Заречная, здание детского сада № 42",[295],56.241,37.52],
+["п. Деденево, ул. Комсомольская, д.30, Центр культурного развития",[296],56.245999,37.522279],
+["п. Деденево, ул. Советская, д.2, здание ФОКа",[297],56.2362768,37.5178083],
+["пос. Деденево, ул. Советская, д.2, МОУ Деденевская СОШ им. Н. К. Крупской",[298],56.2362768,37.5178083],
+["д. Целеево, МДОУ детский сад №43 «Сосенка»",[273],56.2404936,37.4978234],
+["с. Рогачево, пл. Осипова, 23, СДК «Рогачево»",[320],56.4342328,37.1584572],
+["с. Рогачево, ул. Ракетчиков, здание бывшего магазина",[321],56.4266535,37.1898768],
+["с. Покровское, дом 26А, СДК «Покровский»",[323],56.4127916,37.0513859],
+["д. Насадкино, д. 7А, СДК «Насадкинский»",[324],56.4818527,37.3469548],
+["с. Куликово, ул. Новокуликово, д.33А, СДК «Куликово»",[326],56.4493638,37.2995155],
+["пос. Луговой, бывший Дом культуры",[327],56.4265752,37.1883639],
+["пос. Мельчевка, строение 74, СДК «Мельчевский»",[328],56.4686597,37.3975591],
+["пос. Новосиньково, 70, МОУ Синьковская СОШ №2",[308],56.3763791,37.3282329],
+["пос. Новосиньково, 73, ЦКР «Синьковский»",[309],56.3763791,37.3282329],
+["пос. Новосиньково, д.15, Дмитровский техникум",[310],56.3763791,37.3282329],
+["пос. Автополигон, 12а, МДОУ детский сад № 65 «Колосок»",[311],56.3505315,37.3265588],
+["пос. Новосиньково, мкр. Дуброво, дом 2, кв.76",[312],56.3763791,37.3282329],
+["с. Семеновское, 98А, Молодёжный центр «Синьково»",[313],56.3220899,37.1244336],
+["с. Абрамцево, д.16А, СДК «Бунятинский»",[314],56.4067915,37.239253],
+["пос. Новосиньково, д.60, МОУ Синьковская СОШ №1",[3731],56.3763791,37.3282329],
+["пос. Горшково, д.63, ДК «Расцвет»",[274,275],56.377767,37.4125248],
+["пос. Горшково, здание ФОКа",[276],56.377767,37.4125248],
+["п. Новое Гришино, ул. Школьная, д.1, МОУ Подосинковская СОШ",[329],56.196788,37.64122],
+["д. Гришино, д. 95, здание МКУ ЦБ Костинское",[330],56.2163605,37.6576973],
+["с. Костино, д.118, Дом культуры",[331],56.310074,37.7141035],
+["Центр активного отдыха X-LAND, здание боулинга",[270],56.2769853,37.6003455],
+["п. Подосинки, Дом культуры",[271],56.2071072,37.5504402],
+["п. Подосинки, МОУ Подосинковская СОШ",[272],56.2071072,37.5504402],
+["д. Ольявидово, ул. Центральная, д.12, Дом культуры",[332],56.5028528,37.7534732],
+["пос. совхоза «Буденновец», ул. Транспортная, д. 41, Дом культуры",[333],56.3803265,37.6273174],
+["с. Якоть, Дом культуры",[334],56.4023161,37.7153034],
+["МОУ Рыбненская СОШ",[336],56.4155981,37.6203371],
+["с. Внуково, д.60а, Внуковский территориальный отдел",[268],56.3641609,37.5805495],
+["д. Митькино, д.1В, Митькинский СДК",[269],56.3341904,37.563466],
+["с. Орудьево, ул. Фабричная, 18а, МОУ Орудьевская СОШ",[277],56.429741,37.5278926],
+["д. Татищево, 94а, Дом культуры",[278],56.3976062,37.5046506],
+["д. Княжево, ул. Советская, 18а, Дом культуры",[279],56.4708239,37.5014628],
+["пос. Орево, 2, Дом культуры",[280],56.4571404,37.4078996]
+];
+const OFF=[[0,0],[0.00016,0.00016],[-0.00016,0.00016],[0.00016,-0.00016],[0,-0.00022]];
+const SEEDMAP={};
+SEED.forEach(([a,uiks,lat,lon])=>uiks.forEach((k,idx)=>{SEEDMAP[k]={lat,lon,idx};}));
+function seedFor(uik){
+  const s=SEEDMAP[+uik];
+  if(s&&s.lat!=null){const o=OFF[s.idx%OFF.length]; return {lat:s.lat+o[0],lng:s.lon+o[1]};}
+  return null;
+}
+
+/* ================= ГРУППЫ И БАЗОВЫЙ СПИСОК ================= */
+const DEFAULT_GROUPS=[
+ {id:"g0",name:"Дмитров (город)",color:"#ff2fb3"},
+ {id:"g1",name:"Юго-восток округа",color:"#ff9e00"},
+ {id:"g2",name:"Некрасовский",color:"#aaff00"},
+ {id:"g3",name:"Икша и Ермолино",color:"#00e5ff"},
+ {id:"g4",name:"Яхрома и окрестности",color:"#9d4dff"},
+ {id:"g5",name:"Деденево и Целеево",color:"#ffe600"},
+ {id:"g6",name:"Синьково и Рогачево",color:"#ff4d2e"},
+ {id:"g7",name:"Горшково и Подосинки",color:"#2affd5"},
+ {id:"g8",name:"Якоть и Рыбное",color:"#ff7ae0"},
+ {id:"g9",name:"Орудьево, Внуково, Орево",color:"#4d7cff"}
+];
+const PALETTE=['#f43f5e','#8b5cf6','#0ea5e9','#10b981','#f59e0b','#ef4444','#14b8a6','#e879f9','#84cc16','#6366f1'];
+const DEFAULTS=[
+[1,"253","ул. Маркова, д. 6 — МОУ Дмитровская СОШ № 9",0],
+[2,"3723","ул. Маркова, д. 6 — МОУ Дмитровская СОШ № 9",0],
+[3,"3724","ул. Маркова, д. 6 — МОУ Дмитровская СОШ № 9",0],
+[4,"265","ул. Космонавтов, д. 11 — МОУ Дмитровская СОШ № 8",0],
+[5,"266","ул. Космонавтов, д. 11 — МОУ Дмитровская СОШ № 8",0],
+[6,"3727","ул. Космонавтов, д. 11 — МОУ Дмитровская СОШ № 8",0],
+[7,"247","ул. Профессиональная, д. 21 — Центр детского творчества «Радуга»",0],
+[8,"250","мкр. Аверьянова, д. 10 — МОУ Дмитровская СОШ № 10",0],
+[9,"3721","мкр. Аверьянова, д. 10 — МОУ Дмитровская СОШ № 10",0],
+[10,"3722","мкр. Аверьянова, д. 10 — МОУ Дмитровская СОШ № 10",0],
+[11,"255","ул. Загорская, д. 64 — МБУ ЦДК «Созвездие»",0],
+[12,"259","ул. Почтовая, д. 16, корп. 2 — Дмитровская центральная межпоселенческая библиотека",0],
+[13,"261","ул. Школьная, д. 11 — МОУ Дмитровская СОШ № 1 им. В. И. Кузнецова",0],
+[14,"262","ул. Школьная, д. 11 — МОУ Дмитровская СОШ № 1",0],
+[15,"3726","г. Дмитров, ул. Школьная, д. 14 — МОУ Дмитровская СОШ № 5",0],
+[16,"242","ДК «Содружество», ул. Профессиональная, д. 92",0],
+[17,"3716","ДК «Содружество», ул. Профессиональная, д. 92",0],
+[18,"243","мкр. ДЗФС, д. 24 — МОУ Дмитровская СОШ № 3",0],
+[19,"3717","мкр. ДЗФС, д. 24 — МОУ Дмитровская СОШ № 3",0],
+[20,"244","мкр. ДЗФС, д. 24 — МОУ Дмитровская СОШ № 3",0],
+[21,"245","ул. Внуковская, строение 40 — ООО «Дмитров-Кабель»",0],
+[22,"248","мкр. Махалина, д. 15 — МОУ Лицей № 4 г. Дмитрова",0],
+[23,"3719","мкр. Махалина, д. 15 — МОУ Лицей № 4",0],
+[24,"3720","мкр. Махалина, д. 15 — МОУ Лицей № 4",0],
+[25,"249","мкр. Махалина, д. 15 — МОУ Лицей № 4",0],
+[26,"241","Дмитровская школа ДОСААФ, ул. Старо-Рогачевская, д. 34",0],
+[27,"246","мкр. Внуковский, д. 20 — МОУ Внуковская СОШ",0],
+[28,"3718","мкр. Внуковский, д. 20 — МОУ Внуковская СОШ",0],
+[29,"257","ул. Комсомольская, д. 17а — МОУ Дмитровская СОШ № 2",0],
+[30,"3725","ул. Комсомольская, д. 17а — МОУ Дмитровская СОШ № 2",0],
+[31,"263","ул. Большевистская, д. 16 — ДК «Современник»",0],
+[32,"264","ул. Космонавтов, д. 33 — Дмитровский институт непрерывного образования",0],
+[33,"256","ул. Инженерная, д. 24а — гимназия «Дмитров»",0],
+[34,"258","ул. Комсомольская, д. 33 — стадион «Локомотив», помещение ФОК",0],
+[35,"260","ул. Волгостроевская, д. 2а — филиал МОУ Дмитровская СОШ № 2",0],
+[36,"267","ул. 2-я Московская, д. 5 — ГКУ МО «Мособллес», Дмитровский филиал",0],
+[37,"315","пос. совхоза «Останкино», д. 38А — МОУ Останкинская СОШ",1],
+[38,"316","с. Озерецкое — МБУ Спортивный комплекс «Урожай»",1],
+[39,"317","д. Каменка, д. 71А — МОУ Каменская СОШ № 1",1],
+[40,"318","пос. дома отдыха «Горки» — ДК «Бригантина»",1],
+[41,"319","Адрес не указан в исходных данных ЦИК",1],
+[42,"3729","п. Некрасовский, ул. Парковая, д. 1 — МОУ Катуаровская СОШ",2],
+[43,"304","п. Некрасовский, ул. Заводская, д. 44 — Дом культуры «Керамик»",2],
+[44,"305","п. Некрасовский, ул. Ушакова, д. 27б — здание завода «Полимерконтейнер»",2],
+[45,"306","п. Некрасовский, мкр. Строителей, д. 12 — Дом культуры «Строитель»",2],
+[46,"307","п. Некрасовский, мкр. Трудовая — Дом офицеров",2],
+[47,"303","п. Некрасовский, ул. Краснофлотская, д. 10",2],
+[48,"3730","п. Некрасовский, мкр. Строителей, д. 10 — МОУ Черновская СОШ",2],
+[49,"300","п. Икша, ул. Комсомольская, д. 20а — Дом культуры",3],
+[50,"301","п. Икша, ул. Комсомольская, д. 19 — Спортивный комплекс «Икша»",3],
+[51,"302","пос. ОПХ «Ермолино», ул. Центральная, д. 13 — Дом культуры",3],
+[52,"3728","п. Икша, ул. Рабочая, д. 18 — МОУ Икшинская СОШ",3],
+[53,"281","Яхрома, ул. Кирьянова, д. 12а — МОУ Яхромская СОШ № 2",4],
+[54,"283","Яхрома, ул. Бусалова, д. 21 — Детский сад № 18 «Бригантина»",4],
+[55,"284","Яхрома, ул. Заречная, д. 2 — Дом культуры «Яхрома»",4],
+[56,"285","Яхрома, ул. Ленина, д. 17 — Шахматный клуб",4],
+[57,"286","Яхрома, ул. Конярова, д. 9 — Яхромский территориально-медицинский комплекс",4],
+[58,"287","Яхрома, мкр. Левобережье, д. 17 — МОУ Яхромская СОШ № 1",4],
+[59,"289","Яхрома, ул. Большевистская, д. 16, стр. 5 — Яхромская техшкола (общежитие)",4],
+[60,"290","Яхрома, ул. Ленина, д. 42 — ЗАО «Яхромский автобусный завод»",4],
+[61,"291","Яхрома, ул. Семешинская, д. 1 — МОУ Яхромская СОШ № 3",4],
+[62,"292","д. Астрецово — ОАО «Гамма»",4],
+[63,"293","с. Подъячево — МОУ Подъячевская СОШ",4],
+[64,"294","с. Ольгово, д. 92 — помещение ФАП",4],
+[65,"295","п. Деденево, ул. Заречная — здание детского сада № 42",5],
+[66,"296","п. Деденево, ул. Комсомольская, д. 30 — Центр культурного развития",5],
+[67,"297","п. Деденево, ул. Советская, д. 2 — здание ФОКа",5],
+[68,"298","пос. Деденево, ул. Советская, д. 2 — МОУ Деденевская СОШ им. Н. К. Крупской",5],
+[69,"273","д. Целеево — МДОУ детский сад № 43 «Сосенка»",5],
+[70,"320","с. Рогачево, пл. Осипова, д. 23 — СДК «Рогачево»",6],
+[71,"321","с. Рогачево, ул. Ракетчиков — здание бывшего магазина",6],
+[72,"322","Яхрома, мкр. Левобережье, д. 17 — МОУ Яхромская СОШ № 1",4],
+[73,"323","с. Покровское, д. 26А — СДК «Покровский»",6],
+[74,"324","д. Насадкино, д. 7А — СДК «Насадкинский»",6],
+[75,"326","с. Куликово, ул. Новокуликово, д. 33А — СДК «Куликово»",6],
+[76,"327","пос. Луговой — бывший Дом культуры",6],
+[77,"328","пос. Мельчевка, строение 74 — СДК «Мельчевский»",6],
+[78,"308","пос. Новосиньково, д. 70 — МОУ Синьковская СОШ № 2",6],
+[79,"309","пос. Новосиньково, д. 73 — ЦКР «Синьковский»",6],
+[80,"310","пос. Новосиньково, д. 15 — Дмитровский техникум",6],
+[81,"311","пос. Автополигон, д. 12а — МДОУ детский сад № 65 «Колосок»",6],
+[82,"312","пос. Новосиньково, мкр. Дуброво, дом 2, кв. 76",6],
+[83,"313","с. Семёновское, д. 98А — Молодёжный центр «Синьково»",6],
+[84,"314","с. Абрамцево, д. 16А — СДК «Бунятинский»",6],
+[85,"3731","пос. Новосиньково, д. 60 — МОУ Синьковская СОШ № 1",6],
+[86,"274","пос. Горшково, д. 63 — ДК «Расцвет»",7],
+[87,"275","пос. Горшково, д. 63 — ДК «Расцвет»",7],
+[88,"276","пос. Горшково — здание ФОКа",7],
+[89,"329","п. Новое Гришино, ул. Школьная, д. 1 — МОУ Подосинковская СОШ",7],
+[90,"330","д. Гришино, д. 95 — здание МКУ ЦБ Костинское",7],
+[91,"331","с. Костино, д. 118 — Дом культуры",7],
+[92,"270","Центр активного отдыха X-LAND, здание боулинга",7],
+[93,"271","п. Подосинки — Дом культуры",7],
+[94,"272","п. Подосинки — МОУ Подосинковская СОШ",7],
+[95,"332","д. Ольявидово, ул. Центральная, д. 12 — Дом культуры",8],
+[96,"333","пос. совхоза «Будённовец», ул. Транспортная, д. 41 — Дом культуры",8],
+[97,"334","с. Якоть — Дом культуры",8],
+[98,"336","МОУ Рыбненская СОШ",8],
+[99,"268","с. Внуково, д. 60а — Внуковский территориальный отдел",9],
+[100,"269","д. Митькино, д. 1В — Митькинский СДК",9],
+[101,"277","с. Орудьево, ул. Фабричная, д. 18а — МОУ Орудьевская СОШ",9],
+[102,"278","д. Татищево, д. 94а — Дом культуры",9],
+[103,"279","д. Княжево, ул. Советская, д. 18а — Дом культуры",9],
+[104,"280","пос. Орево, д. 2 — Дом культуры",9]
+];
+
+/* ================= СОСТОЯНИЕ ================= */
+const KEY5="gadske_vybory_v5";
+function defGroups(){return DEFAULT_GROUPS.map(g=>({...g}));}
+function repairGroups(gs){
+  const out=(Array.isArray(gs)&&gs.length)?gs.map(g=>({id:g.id,name:String(g.name),color:g.color||'#9ca3af'})):[];
+  for(const dg of DEFAULT_GROUPS){ if(!out.some(g=>g.id===dg.id)) out.push({...dg}); }
+  return out;
+}
+function defItems(){
+  return DEFAULTS.map(r=>{
+    const c=seedFor(r[1]);
+    return {id:r[0],uik:r[1],addr:r[2],group:'g'+r[3],lat:c?c.lat:null,lng:c?c.lng:null,closed:false,closedBy:'',closedAt:null};
+  });
+}
+function normItem(x){
+  return {id:x.id,uik:x.uik,addr:x.addr,group:x.group||'g0',lat:x.lat??null,lng:x.lng??null,
+          closed:!!x.closed,closedBy:x.closedBy||'',closedAt:x.closedAt||null};
+}
+function loadLocal(){
+  try{const s=localStorage.getItem(KEY5); if(s){const d=JSON.parse(s); if(d&&d.groups&&d.items) return {groups:repairGroups(d.groups),items:d.items};}}catch(e){}
+  return null;
+}
+let pushT=null;
+function save(){
+  try{localStorage.setItem(KEY5,JSON.stringify({groups,items}));}catch(e){}
+  pushSoon();
+}
+const loaded=loadLocal();
+let groups=loaded?loaded.groups:defGroups();
+let items=loaded?loaded.items:defItems();
+let filterGroup='all', statusFilter='all', filterQ="", editingId=null, pickCb=null, markerById={}, closingId=null;
+let map=null, markerLayer=null;
+
+function grp(gid){return groups.find(g=>g.id===gid)||groups[0]||{name:'—',color:'#9ca3af'};}
+function darken(hex,f=0.58){
+  if(!hex||hex[0]!=='#')return '#374151';
+  const n=parseInt(hex.slice(1),16);
+  return `rgb(${Math.round(((n>>16)&255)*f)},${Math.round(((n>>8)&255)*f)},${Math.round((n&255)*f)})`;
+}
+function fmtDT(ts){if(!ts)return ''; const d=new Date(ts); return d.toLocaleString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});}
+
+/* ================= ОБЩЕЕ ХРАНИЛИЩЕ (файл в GitHub-репозитории) =================
+   Как это работает: состояние (группы + участки) хранится как JSON-файл
+   в вашем же GitHub-репозитории. Страница читает и пишет его через GitHub API.
+   ЗАПОЛНИТЕ 4 ПОЛЯ НИЖЕ перед публикацией — см. README.md, раздел "Настройка". */
+const GH_OWNER  = 'ВАШ-ЛОГИН-НА-GITHUB';        // например: shiki-dev
+const GH_REPO   = 'НАЗВАНИЕ-РЕПОЗИТОРИЯ';        // например: uik-map
+const GH_BRANCH = 'main';                        // ветка, где живут Pages
+const GH_PATH   = 'state.json';                  // файл-хранилище в корне репозитория
+const GH_TOKEN  = 'ВСТАВЬТЕ-СЮДА-ВАШ-ТОКЕН';     // fine-grained PAT, доступ Contents: Read and write, только для этого репозитория
+
+const API=`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}`;
+let sharedMode=false, sharedRev=0, lastPushed='', pullTimer=null, lastSyncAt=null, remoteStatus='нет связи';
+let retryT=null, ghSha=null;
+
+function ghConfigured(){
+  return GH_OWNER && !GH_OWNER.startsWith('ВАШ') && GH_REPO && !GH_REPO.startsWith('НАЗВАНИЕ') &&
+         GH_TOKEN && !GH_TOKEN.startsWith('ВСТАВЬТЕ');
+}
+function ghHeaders(json){
+  const h={'Authorization':'Bearer '+GH_TOKEN, 'Accept':'application/vnd.github+json'};
+  if(json) h['Content-Type']='application/json';
+  return h;
+}
+function utf8ToB64(str){
+  const bytes=new TextEncoder().encode(str);
+  let bin=''; bytes.forEach(b=>bin+=String.fromCharCode(b));
+  return btoa(bin);
+}
+function b64ToUtf8(b64){
+  const bin=atob(b64.replace(/\n/g,''));
+  const bytes=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+function scheduleRetry(){
+  if(!sharedMode){ clearTimeout(retryT); retryT=setTimeout(initRemote,20000); }
+}
+async function initRemote(){
+  if(!ghConfigured()){
+    sharedMode=false; remoteStatus='не настроено (заполните GH_* в начале скрипта)';
+    renderList();
+    return;
+  }
+  try{
+    const r=await fetch(API+'?ref='+GH_BRANCH+'&t='+Date.now(),{headers:ghHeaders(false),cache:'no-store'});
+    if(r.status===404){
+      // файла ещё нет — создадим его первым же сохранением
+      sharedMode=true; remoteStatus='ок (новый файл)'; ghSha=null;
+      if(!pullTimer) pullTimer=setInterval(pullRemote,20000);
+      renderList();
+      return;
+    }
+    if(!r.ok){
+      sharedMode=false; remoteStatus='ошибка '+r.status;
+      renderList(); scheduleRetry();
+      return;
+    }
+    sharedMode=true; remoteStatus='ок';
+    const d=await r.json();
+    ghSha=d.sha;
+    const txt=b64ToUtf8(d.content||'');
+    if(txt&&txt!=='null'){
+      try{
+        const pd=JSON.parse(txt);
+        if(pd&&Array.isArray(pd.items)&&Array.isArray(pd.groups)){
+          groups=repairGroups(pd.groups); items=pd.items; sharedRev=pd.rev||0;
+          try{localStorage.setItem(KEY5,JSON.stringify({groups,items}));}catch(e){}
+          lastSyncAt=new Date(); lastPushed=txt;
+          renderAll(); fitToItems();
+        }
+      }catch(e){}
+    }
+    if(!pullTimer) pullTimer=setInterval(pullRemote,20000);
+    renderList();
+  }catch(e){
+    sharedMode=false; remoteStatus='нет связи';
+    renderList(); scheduleRetry();
+  }
+}
+function pushSoon(){
+  if(!sharedMode) return;
+  clearTimeout(pushT);
+  pushT=setTimeout(pushRemote,800);
+}
+async function pushRemote(retry){
+  if(!sharedMode) return;
+  try{
+    sharedRev=Date.now();
+    const payload=JSON.stringify({rev:sharedRev,groups,items});
+    const body={message:'update state '+new Date().toISOString(), content:utf8ToB64(payload), branch:GH_BRANCH};
+    if(ghSha) body.sha=ghSha;
+    const r=await fetch(API,{method:'PUT',headers:ghHeaders(true),body:JSON.stringify(body)});
+    if(r.ok){
+      const d=await r.json();
+      ghSha=d.content.sha;
+      lastPushed=payload; lastSyncAt=new Date(); remoteStatus='ок'; renderList();
+    }else if((r.status===409||r.status===422)&&!retry){
+      // конфликт версий: подтягиваем актуальный sha и пробуем ещё раз
+      const rr=await fetch(API+'?ref='+GH_BRANCH+'&t='+Date.now(),{headers:ghHeaders(false),cache:'no-store'});
+      if(rr.ok){const dd=await rr.json(); ghSha=dd.sha;}
+      await pushRemote(true);
+    }else{
+      remoteStatus='ошибка записи '+r.status;
+    }
+  }catch(e){remoteStatus='нет связи';}
+}
+async function pullRemote(){
+  if(!sharedMode) return;
+  try{
+    const r=await fetch(API+'?ref='+GH_BRANCH+'&t='+Date.now(),{headers:ghHeaders(false),cache:'no-store'});
+    if(r.status===404) return;
+    if(!r.ok) return;
+    const d=await r.json();
+    if(d.sha===ghSha) return;
+    const txt=b64ToUtf8(d.content||'');
+    if(!txt||txt==='null'||txt===lastPushed){ ghSha=d.sha; return; }
+    const pd=JSON.parse(txt);
+    if(!pd||!Array.isArray(pd.items)) return;
+    if((pd.rev||0)>sharedRev){
+      groups=repairGroups(pd.groups); items=pd.items; sharedRev=pd.rev||0; ghSha=d.sha;
+      try{localStorage.setItem(KEY5,JSON.stringify({groups,items}));}catch(e){}
+      lastPushed=txt; lastSyncAt=new Date();
+      renderAll(); fitToItems();
+      toast('☁️ Получены обновления');
+    }else{
+      ghSha=d.sha;
+    }
+  }catch(e){}
+}
+function fitToItems(){
+  if(!map) return;
+  const p=items.filter(i=>i.lat!=null).map(i=>[i.lat,i.lng]);
+  if(p.length) map.fitBounds(L.latLngBounds(p).pad(0.12));
+}
+
+/* ================= ИНИЦИАЛИЗАЦИЯ КАРТЫ ================= */
+function startApp(){
+  const ld=document.getElementById('mapLoading'); if(ld) ld.remove();
+  map=L.map('map',{zoomControl:true, attributionControl:false});
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
+  const credit=L.control({position:'bottomleft'});
+  credit.onAdd=()=>{const d=L.DomUtil.create('div','credit'); d.textContent='карта: © OpenStreetMap contributors'; return d;};
+  credit.addTo(map);
+  markerLayer=L.layerGroup().addTo(map);
+  const pts=items.filter(i=>i.lat!=null).map(i=>[i.lat,i.lng]);
+  if(pts.length) map.fitBounds(L.latLngBounds(pts).pad(0.12)); else map.setView([56.35,37.52],11);
+  map.on('click',e=>{
+    if(!pickCb) return;
+    const cb=pickCb; pickCb=null;
+    document.getElementById('pickBanner').classList.remove('show');
+    cb(e.latlng);
+  });
+  renderAll();
+}
+
+function routeUrl(i){return `https://yandex.ru/maps/?rtext=~${i.lat},${i.lng}&rtt=auto`;}
+function popupHTML(i){
+  const g=grp(i.group);
+  const st=i.closed
+    ?`<div class="pop-st" style="color:#15803d">🔒 Закрыт — ${i.closedBy||'—'}${i.closedAt?` (${fmtDT(i.closedAt)})`:''}</div>`
+    :`<div class="pop-st" style="color:#6b7280">🔓 Открыт</div>`;
+  return `<div class="pop">
+    <div class="pop-uik">УИК № ${i.uik}</div>
+    <div class="pop-addr">${i.addr}</div>
+    <div class="pop-zone" style="color:${darken(g.color)}">● ${g.name}</div>
+    ${st}
+    <div class="acts">
+      <a class="mini m-rt" target="_blank" href="${routeUrl(i)}">🚗 Маршрут</a>
+      <button class="mini ${i.closed?'m-op':'m-cl'}" onclick="popupToggle('${i.id}')">${i.closed?'🔓 Открыть':'🔒 Закрыть'}</button>
+      <button class="mini m-ed" onclick="openModal('${i.id}')">✏️</button>
+    </div></div>`;
+}
+
+/* ================= РЕНДЕР ================= */
+function filtered(){
+  const q=filterQ.toLowerCase();
+  return items.filter(i=>
+    (filterGroup==='all'||i.group===filterGroup)&&
+    (statusFilter==='all'||(statusFilter==='closed')===!!i.closed)&&
+    (!q||String(i.uik).toLowerCase().includes(q)||i.addr.toLowerCase().includes(q))
+  );
+}
+function renderMarkers(){
+  if(!markerLayer)return;
+  markerLayer.clearLayers(); markerById={};
+  filtered().forEach(i=>{
+    if(i.lat==null) return;
+    const g=grp(i.group);
+    const m=L.circleMarker([i.lat,i.lng],{
+      radius:9,color:'#1a0736',weight:2.5,
+      fillColor:i.closed?'#9ca3af':g.color,
+      fillOpacity:i.closed?.85:1
+    });
+    m.bindPopup(popupHTML(i));
+    m.on('click',()=>highlight(i.id));
+    markerLayer.addLayer(m); markerById[i.id]=m;
+  });
+}
+function renderList(){
+  const list=document.getElementById('list'); list.innerHTML='';
+  const f=filtered();
+  const mode=sharedMode
+  ? ('☁️ общая'+(lastSyncAt?' · синхр. '+lastSyncAt.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',second:'2-digit'}):''))
+  : ('💾 локальная ('+remoteStatus+')');
+  document.getElementById('counter').textContent=`${mode} · Показано: ${f.length} из ${items.length} · 🔒 Закрыто: ${items.filter(i=>i.closed).length} из ${items.length}`;
+  document.getElementById('pbar').style.width=(items.length?Math.round(items.filter(i=>i.closed).length/items.length*100):0)+'%';
+  f.forEach(i=>{
+    const g=grp(i.group);
+    const d=document.createElement('div');
+    d.className='card'+(i.closed?' closed':'');
+    d.style.setProperty('--c',g.color); d.style.setProperty('--tc',darken(g.color));
+    d.innerHTML=`<div class="top"><span class="uik-badge" style="--c:${i.closed?'#22c55e':g.color}">УИК ${i.uik}</span><span class="zone-tag">${g.name}</span>${i.lat==null?'<span class="nocoord">нет координат</span>':''}${i.closed?`<span class="closed-badge">✔ ${i.closedBy||'закрыт'} · ${fmtDT(i.closedAt)}</span>`:''}</div>
+      <div class="addr">${i.addr}</div>
+      <div class="acts">
+        <button class="mini m-go">📍 На карте</button>
+        ${i.lat!=null?`<a class="mini m-rt" target="_blank" href="${routeUrl(i)}">🚗 Маршрут</a>`:''}
+        <button class="mini ${i.closed?'m-op':'m-cl'}">${i.closed?'🔓 Открыть':'🔒 Закрыть'}</button>
+        <button class="mini m-ed">✏️</button>
+      </div>`;
+    d.querySelector('.m-go').onclick=()=>flyTo(i);
+    d.querySelector('.m-ed').onclick=()=>openModal(i.id);
+    d.querySelector(i.closed?'.m-op':'.m-cl').onclick=()=>popupToggle(i.id);
+    d.onclick=e=>{if(e.target.tagName!=='BUTTON'&&e.target.tagName!=='A')flyTo(i);};
+    list.appendChild(d);
+  });
+}
+function renderStatusChips(){
+  const box=document.getElementById('statusChips'); box.innerHTML='';
+  [['all','Все'],['open','🔓 Открытые'],['closed','🔒 Закрытые']].forEach(([v,l])=>{
+    const c=document.createElement('span');
+    c.className='chip'+(statusFilter===v?' on':'');
+    c.style.setProperty('--c', v==='closed'?'#22c55e':v==='open'?'#2563eb':'#9ca3af');
+    c.textContent=l;
+    c.onclick=()=>{statusFilter=(statusFilter===v?'all':v); renderMapList();};
+    box.appendChild(c);
+  });
+}
+function renderChips(){
+  const box=document.getElementById('chips'); box.innerHTML='';
+  const mk=(label,gid,color)=>{
+    const c=document.createElement('span');
+    c.className='chip'+(filterGroup===gid?' on':'');
+    c.style.setProperty('--c',color);
+    c.innerHTML=(gid!=='all'?`<i></i>`:'')+label;
+    c.onclick=()=>{filterGroup=(filterGroup===gid?'all':gid); renderMapList();};
+    box.appendChild(c);
+  };
+  mk('Все группы','all','#9ca3af');
+  groups.forEach(g=>mk(g.name,g.id,g.color));
+}
+function renderGroupsPanel(){
+  const p=document.getElementById('groupsPanel');
+  p.innerHTML='<div class="gp-title">Группы участков</div>';
+  groups.forEach(g=>{
+    const row=document.createElement('div'); row.className='grow';
+    const cnt=items.filter(i=>i.group===g.id).length;
+    row.innerHTML=`<input type="color" class="gcolor" value="${g.color}">
+      <input class="gname" value="${g.name.replace(/"/g,'&quot;')}">
+      <span class="gcount" title="участков в группе">${cnt}</span>
+      <button class="gdel" title="Удалить группу">✕</button>`;
+    row.querySelector('.gcolor').oninput=e=>{g.color=e.target.value; save(); renderMapList();};
+    row.querySelector('.gname').oninput=e=>{g.name=e.target.value; save(); renderChips(); renderMarkers(); renderList();};
+    row.querySelector('.gdel').onclick=()=>deleteGroup(g.id);
+    p.appendChild(row);
+  });
+  const add=document.createElement('button');
+  add.className='gadd'; add.textContent='➕ Добавить группу';
+  add.onclick=()=>{
+    groups.push({id:'g'+Date.now(),name:'Новая группа '+(groups.length+1),color:PALETTE[groups.length%PALETTE.length]});
+    save(); renderAll(); toast('Группа добавлена 🎨');
+  };
+  p.appendChild(add);
+}
+function renderMapList(){renderStatusChips(); renderChips(); renderMarkers(); renderList();}
+function renderAll(){renderMapList(); renderGroupsPanel();}
+
+function flyTo(i){
+  if(i.lat==null){toast(`У УИК ${i.uik} нет координат — поставьте точку через ✏️`);return;}
+  closePanel();
+  map.flyTo([i.lat,i.lng],16,{duration:.9});
+  setTimeout(()=>{const m=markerById[i.id]; if(m)m.openPopup();},950);
+  highlight(i.id);
+}
+function highlight(id){
+  Object.entries(markerById).forEach(([k,m])=>m.setStyle({radius:k==id?13:9,weight:k==id?5:2.5,color:k==id?'#ffffff':'#1a0736'}));
+}
+
+/* ================= МОБИЛЬНАЯ ПАНЕЛЬ ================= */
+function togglePanel(){
+  const sb=document.getElementById('sidebar');
+  const open=sb.classList.toggle('open');
+  document.getElementById('panelToggle').textContent=open?'🗺 К карте':'📋 Участки';
+}
+function closePanel(){
+  if(window.innerWidth<=820){
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('panelToggle').textContent='📋 Участки';
+  }
+}
+
+/* ================= ЗАКРЫТИЕ УЧАСТКОВ ================= */
+function popupToggle(id){
+  const i=items.find(x=>x.id==id); if(!i)return;
+  if(i.closed){reopenItem(id);}else{showCloseModal(id);}
+}
+function showCloseModal(id){
+  closingId=id;
+  const i=items.find(x=>x.id==id);
+  document.getElementById('closeTitle').textContent=`УИК ${i.uik} — ${i.addr}`;
+  document.getElementById('close-name').value='';
+  document.getElementById('closeOverlay').classList.add('show');
+  setTimeout(()=>document.getElementById('close-name').focus(),50);
+}
+function hideCloseModal(){document.getElementById('closeOverlay').classList.remove('show'); closingId=null;}
+function confirmClose(){
+  const name=document.getElementById('close-name').value.trim();
+  if(!name){toast('Введите, кто закрыл участок!');return;}
+  const i=items.find(x=>x.id==closingId); if(!i)return;
+  i.closed=true; i.closedBy=name; i.closedAt=Date.now();
+  save(); hideCloseModal(); renderMapList();
+  toast(`УИК ${i.uik} закрыт (${name}) 🔒`);
+}
+function reopenItem(id){
+  const i=items.find(x=>x.id==id); if(!i)return;
+  i.closed=false; i.closedBy=''; i.closedAt=null;
+  save(); renderMapList(); toast(`УИК ${i.uik} снова открыт 🔓`);
+}
+
+/* ================= ГРУППЫ ================= */
+function toggleGroups(){document.getElementById('groupsPanel').classList.toggle('show');}
+function deleteGroup(gid){
+  if(groups.length<=1){toast('Нельзя удалить единственную группу');return;}
+  const g=grp(gid);
+  const cnt=items.filter(i=>i.group===gid).length;
+  if(!confirm(`Удалить группу «${g.name}»?${cnt?` Её участки (${cnt}) будут перенесены в другую группу.`:''}`))return;
+  const target=groups.find(x=>x.id!==gid);
+  items.forEach(i=>{if(i.group===gid)i.group=target.id;});
+  groups=groups.filter(x=>x.id!==gid);
+  if(filterGroup===gid)filterGroup='all';
+  save(); renderAll(); toast('Группа удалена 🗑');
+}
+
+/* ================= ПОИСК АДРЕСА ================= */
+async function geocode(q){
+  const url='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=ru&q='+encodeURIComponent(q);
+  try{
+    const r=await fetch(url,{headers:{'Accept-Language':'ru'}});
+    const d=await r.json();
+    if(d&&d.length) return {lat:+d[0].lat,lng:+d[0].lon,label:d[0].display_name};
+  }catch(e){}
+  return null;
+}
+function queryFor(item){
+  const base=item.addr.split('—')[0].trim();
+  const place=item.group==='g0'?', г. Дмитров':', Дмитровский городской округ';
+  return base+place+', Московская область';
+}
+async function geocodeModal(){
+  const addr=f('f-addr');
+  if(!addr){toast('Сначала введите адрес!');return;}
+  toast('Ищем адрес… 🔎');
+  let res=await geocode(queryFor({addr,group:f('f-group')}));
+  if(!res) res=await geocode(addr.split('—')[0].trim()+', Московская область');
+  if(res){
+    document.getElementById('f-lat').value=res.lat.toFixed(6);
+    document.getElementById('f-lng').value=res.lng.toFixed(6);
+    toast('Нашли: '+res.label.slice(0,70)+' 🎯');
+  } else toast('Адрес не найден — поставьте точку вручную кликом по карте 🙈');
+}
+
+/* ================= ДОБАВЛЕНИЕ / РЕДАКТИРОВАНИЕ ================= */
+const overlay=document.getElementById('overlay');
+function fillGroupSelect(sel){
+  const s=document.getElementById('f-group'); s.innerHTML='';
+  groups.forEach(g=>{const o=document.createElement('option');o.value=g.id;o.textContent=g.name;s.appendChild(o);});
+  s.value=(sel&&groups.some(g=>g.id===sel))?sel:groups[0].id;
+}
+function openModal(id){
+  const i=items.find(x=>x.id==id); if(!i)return;
+  editingId=i.id;
+  document.getElementById('modalTitle').textContent='✏️ Изменить участок';
+  document.getElementById('btnDel').style.display='';
+  document.getElementById('f-uik').value=i.uik;
+  document.getElementById('f-addr').value=i.addr;
+  fillGroupSelect(i.group);
+  document.getElementById('f-lat').value=i.lat??'';
+  document.getElementById('f-lng').value=i.lng??'';
+  document.getElementById('f-closed').checked=!!i.closed;
+  document.getElementById('f-closedby').value=i.closedBy||'';
+  overlay.classList.add('show');
+}
+function openAddModal(lat,lng){
+  editingId=null;
+  document.getElementById('modalTitle').textContent='➕ Новый участок';
+  document.getElementById('btnDel').style.display='none';
+  document.getElementById('f-uik').value='';
+  document.getElementById('f-addr').value='';
+  fillGroupSelect(filterGroup!=='all'?filterGroup:groups[0].id);
+  document.getElementById('f-lat').value=lat.toFixed(6);
+  document.getElementById('f-lng').value=lng.toFixed(6);
+  document.getElementById('f-closed').checked=false;
+  document.getElementById('f-closedby').value='';
+  overlay.classList.add('show');
+}
+function closeModal(){overlay.classList.remove('show');}
+function startAdd(){
+  closePanel();
+  document.getElementById('pickBanner').classList.add('show');
+  pickCb=ll=>openAddModal(ll.lat,ll.lng);
+  toast('Кликните на карту, где находится новый участок');
+}
+function movePoint(){
+  const vals={uik:f('f-uik'),addr:f('f-addr'),group:f('f-group'),closed:document.getElementById('f-closed').checked,closedBy:f('f-closedby')};
+  closeModal(); closePanel();
+  document.getElementById('pickBanner').classList.add('show');
+  pickCb=ll=>{
+    if(editingId!=null){openModal(editingId);}else{openAddModal(ll.lat,ll.lng);}
+    document.getElementById('f-uik').value=vals.uik;
+    document.getElementById('f-addr').value=vals.addr;
+    fillGroupSelect(vals.group);
+    document.getElementById('f-lat').value=ll.lat.toFixed(6);
+    document.getElementById('f-lng').value=ll.lng.toFixed(6);
+    document.getElementById('f-closed').checked=vals.closed;
+    document.getElementById('f-closedby').value=vals.closedBy;
+  };
+}
+function f(id){return document.getElementById(id).value;}
+function cancelPick(){pickCb=null; document.getElementById('pickBanner').classList.remove('show');}
+function saveModal(){
+  const uik=document.getElementById('f-uik').value.trim();
+  const addr=document.getElementById('f-addr').value.trim();
+  const group=document.getElementById('f-group').value;
+  const lat=parseFloat(document.getElementById('f-lat').value);
+  const lng=parseFloat(document.getElementById('f-lng').value);
+  const closed=document.getElementById('f-closed').checked;
+  const closedBy=document.getElementById('f-closedby').value.trim();
+  if(!uik||!addr){toast('Заполните номер УИК и адрес!');return;}
+  const hasCoords=!isNaN(lat)&&!isNaN(lng);
+  if(closed&&!closedBy){toast('Укажите, кто закрыл участок!');return;}
+  if(editingId!=null){
+    const i=items.find(x=>x.id==editingId);
+    const wasClosed=i.closed;
+    Object.assign(i,{uik,addr,group,lat:hasCoords?lat:null,lng:hasCoords?lng:null,closed,closedBy:closed?closedBy:'',closedAt:closed?(wasClosed?i.closedAt:Date.now()):null});
+    toast('Участок УИК '+uik+' обновлён ✅');
+  }else{
+    items.push({id:'u'+Date.now(),uik,addr,group,lat:hasCoords?lat:null,lng:hasCoords?lng:null,closed,closedBy:closed?closedBy:'',closedAt:closed?Date.now():null});
+    toast('Участок УИК '+uik+' добавлен 🎉');
+  }
+  save(); closeModal(); renderAll();
+}
+function deleteItem(){
+  const i=items.find(x=>x.id==editingId); if(!i)return;
+  if(!confirm(`Удалить участок УИК ${i.uik}?`))return;
+  items=items.filter(x=>x.id!=editingId);
+  save(); closeModal(); renderAll(); toast('Участок удалён 🗑');
+}
+
+/* ================= ЭКСПОРТ / ИМПОРТ / СБРОС ================= */
+function exportJSON(){
+  const blob=new Blob([JSON.stringify({version:5,rev:sharedRev||Date.now(),groups,items},null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download='uchastki-dmitrov.json'; a.click();
+  toast('Файл выгружен ⬇');
+}
+function importJSON(ev){
+  const file=ev.target.files[0]; if(!file)return;
+  const r=new FileReader();
+  r.onload=()=>{try{
+      const d=JSON.parse(r.result);
+      if(Array.isArray(d)){
+        groups=defGroups();
+        items=d.filter(x=>x.uik&&x.addr).map((x,i)=>normItem({id:x.id??('i'+i+'_'+Date.now()),uik:String(x.uik),addr:String(x.addr),group:'g'+(x.zone??0),lat:x.lat!=null?+x.lat:null,lng:x.lng!=null?+x.lng:null,closed:!!x.closed,closedBy:x.closedBy||'',closedAt:x.closedAt||null}));
+      }else if(d&&Array.isArray(d.groups)&&Array.isArray(d.items)){
+        groups=repairGroups(d.groups);
+        items=d.items.filter(x=>x.uik&&x.addr)
+               .map((x,i)=>({id:x.id??('i'+i+'_'+Date.now()),uik:String(x.uik),addr:String(x.addr),group:groups.some(g=>g.id===x.group)?x.group:groups[0].id,lat:x.lat!=null?+x.lat:null,lng:x.lng!=null?+x.lng:null,closed:!!x.closed,closedBy:x.closedBy||'',closedAt:x.closedAt||null}));
+        if(d.rev) sharedRev=d.rev;
+      }else throw 0;
+      save(); renderAll(); fitToItems();
+      toast(`Импортировано участков: ${items.length} ✅`);
+    }catch(e){toast('Ошибка импорта: неверный файл ❌');}};
+  r.readAsText(file); ev.target.value='';
+}
+function resetData(){
+  if(!confirm('Сбросить все изменения и вернуть исходные 104 участка и 10 групп?'))return;
+  groups=defGroups(); items=defItems(); save(); renderAll(); fitToItems();
+  toast('Возвращено к исходному ↺');
+}
+
+let toastT;
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2600);
+}
+document.getElementById('search').addEventListener('input',e=>{filterQ=e.target.value; renderMarkers(); renderList();});
+overlay.addEventListener('click',e=>{if(e.target===overlay)closeModal();});
+document.getElementById('closeOverlay').addEventListener('click',e=>{if(e.target.id==='closeOverlay')hideCloseModal();});
+document.getElementById('close-name').addEventListener('keydown',e=>{if(e.key==='Enter')confirmClose();});
+
+initRemote();
+</script>
+</body>
+</html>
