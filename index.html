@@ -527,11 +527,11 @@ function fmtDT(ts){if(!ts)return ''; const d=new Date(ts); return d.toLocaleStri
    Как это работает: состояние (группы + участки) хранится как JSON-файл
    в вашем же GitHub-репозитории. Страница читает и пишет его через GitHub API.
    ЗАПОЛНИТЕ 4 ПОЛЯ НИЖЕ перед публикацией — см. README.md, раздел "Настройка". */
-const GH_OWNER  = 'ВАШ-ЛОГИН-НА-GITHUB';        // например: shiki-dev
-const GH_REPO   = 'НАЗВАНИЕ-РЕПОЗИТОРИЯ';        // например: uik-map
+const GH_OWNER  = 'shiki008';        // например: shiki-dev
+const GH_REPO   = 'uik-map';        // например: uik-map
 const GH_BRANCH = 'main';                        // ветка, где живут Pages
 const GH_PATH   = 'state.json';                  // файл-хранилище в корне репозитория
-const GH_TOKEN  = 'ВСТАВЬТЕ-СЮДА-ВАШ-ТОКЕН';     // fine-grained PAT, доступ Contents: Read and write, только для этого репозитория
+const GH_TOKEN  = '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';     // fine-grained PAT, доступ Contents: Read and write, только для этого репозитория
 
 const API=`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}`;
 let sharedMode=false, sharedRev=0, lastPushed='', pullTimer=null, lastSyncAt=null, remoteStatus='нет связи';
