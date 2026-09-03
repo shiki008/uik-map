@@ -526,23 +526,41 @@ function fmtDT(ts){if(!ts)return ''; const d=new Date(ts); return d.toLocaleStri
 /* ================= ОБЩЕЕ ХРАНИЛИЩЕ (файл в GitHub-репозитории) =================
    Как это работает: состояние (группы + участки) хранится как JSON-файл
    в вашем же GitHub-репозитории. Страница читает и пишет его через GitHub API.
-   ЗАПОЛНИТЕ 4 ПОЛЯ НИЖЕ перед публикацией — см. README.md, раздел "Настройка". */
-const GH_OWNER  = 'shiki008';        // например: shiki-dev
-const GH_REPO   = 'uik-map';        // например: uik-map
+   ЗАПОЛНИТЕ 3 ПОЛЯ НИЖЕ перед публикацией — см. README.md, раздел "Настройка".
+   ТОКЕН СЮДА НЕ ВПИСЫВАЕТСЯ — GitHub автоматически аннулирует любой свой
+   токен, найденный в закоммиченном коде публичного репозитория. Токен
+   каждый вводит сам через кнопку «🔑 включить запись» в интерфейсе —
+   он сохраняется только в браузере (localStorage), не в git. */
+const GH_OWNER  = 'ВАШ-ЛОГИН-НА-GITHUB';        // например: shiki-dev
+const GH_REPO   = 'НАЗВАНИЕ-РЕПОЗИТОРИЯ';        // например: uik-map
 const GH_BRANCH = 'main';                        // ветка, где живут Pages
 const GH_PATH   = 'state.json';                  // файл-хранилище в корне репозитория
-const GH_TOKEN  = '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';     // fine-grained PAT, доступ Contents: Read and write, только для этого репозитория
+const TOKEN_KEY = 'uikmap_gh_token';             // ключ в localStorage браузера
 
 const API=`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}`;
 let sharedMode=false, sharedRev=0, lastPushed='', pullTimer=null, lastSyncAt=null, remoteStatus='нет связи';
 let retryT=null, ghSha=null;
 
 function ghConfigured(){
-  return GH_OWNER && !GH_OWNER.startsWith('ВАШ') && GH_REPO && !GH_REPO.startsWith('НАЗВАНИЕ') &&
-         GH_TOKEN && !GH_TOKEN.startsWith('ВСТАВЬТЕ');
+  return GH_OWNER && !GH_OWNER.startsWith('ВАШ') && GH_REPO && !GH_REPO.startsWith('НАЗВАНИЕ');
+}
+function getToken(){ try{return localStorage.getItem(TOKEN_KEY)||'';}catch(e){return '';} }
+function hasToken(){ return !!getToken(); }
+function promptToken(){
+  const cur=getToken();
+  const t=prompt('Вставьте токен доступа GitHub (fine-grained PAT, права Contents: Read and write). Он сохранится только в этом браузере и никогда не попадёт в репозиторий. Оставьте пустым и нажмите ОК, чтобы выключить запись на этом устройстве.', cur);
+  if(t===null) return; // отмена
+  try{
+    if(t.trim()) localStorage.setItem(TOKEN_KEY, t.trim());
+    else localStorage.removeItem(TOKEN_KEY);
+  }catch(e){}
+  toast(t.trim()?'🔑 Ключ сохранён на этом устройстве':'🔓 Запись выключена на этом устройстве');
+  ghSha=null; initRemote();
 }
 function ghHeaders(json){
-  const h={'Authorization':'Bearer '+GH_TOKEN, 'Accept':'application/vnd.github+json'};
+  const h={'Accept':'application/vnd.github+json'};
+  const tok=getToken();
+  if(tok) h['Authorization']='Bearer '+tok;
   if(json) h['Content-Type']='application/json';
   return h;
 }
@@ -610,6 +628,10 @@ function pushSoon(){
 }
 async function pushRemote(retry){
   if(!sharedMode) return;
+  if(!hasToken()){
+    if(!retry){ toast('🔑 Нужен ключ для сохранения — введите его в счётчике сверху'); promptToken(); }
+    return;
+  }
   try{
     sharedRev=Date.now();
     const payload=JSON.stringify({rev:sharedRev,groups,items});
@@ -625,6 +647,8 @@ async function pushRemote(retry){
       const rr=await fetch(API+'?ref='+GH_BRANCH+'&t='+Date.now(),{headers:ghHeaders(false),cache:'no-store'});
       if(rr.ok){const dd=await rr.json(); ghSha=dd.sha;}
       await pushRemote(true);
+    }else if(r.status===401){
+      remoteStatus='ключ недействителен'; toast('🔑 Ключ не подходит — введите новый'); promptToken();
     }else{
       remoteStatus='ошибка записи '+r.status;
     }
@@ -726,9 +750,11 @@ function renderList(){
   const list=document.getElementById('list'); list.innerHTML='';
   const f=filtered();
   const mode=sharedMode
-  ? ('☁️ общая'+(lastSyncAt?' · синхр. '+lastSyncAt.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',second:'2-digit'}):''))
+  ? ('☁️ общая'+(hasToken()?' (запись включена)':' (только чтение)')+(lastSyncAt?' · синхр. '+lastSyncAt.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',second:'2-digit'}):''))
   : ('💾 локальная ('+remoteStatus+')');
-  document.getElementById('counter').textContent=`${mode} · Показано: ${f.length} из ${items.length} · 🔒 Закрыто: ${items.filter(i=>i.closed).length} из ${items.length}`;
+  const cnt=document.getElementById('counter');
+  cnt.innerHTML=`${mode} · Показано: ${f.length} из ${items.length} · 🔒 Закрыто: ${items.filter(i=>i.closed).length} из ${items.length} · <a href="#" id="tokBtn" style="color:inherit;text-decoration:underline">${hasToken()?'сменить ключ':'🔑 включить запись'}</a>`;
+  const tb=document.getElementById('tokBtn'); if(tb) tb.onclick=(e)=>{e.preventDefault(); promptToken();};
   document.getElementById('pbar').style.width=(items.length?Math.round(items.filter(i=>i.closed).length/items.length*100):0)+'%';
   f.forEach(i=>{
     const g=grp(i.group);
