@@ -69,13 +69,17 @@
   .card:hover{box-shadow:0 2px 10px rgba(0,0,0,.10); transform:translateX(2px)}
   .card.closed{background:#f0fdf4; border-color:#bbf7d0; border-left-color:#22c55e}
   .card.camera-down{background:#fef2f2; border-color:#fecaca; border-left-color:#ef4444}
+  .card.no-sd{background:#fffbeb; border-color:#fde68a; border-left-color:#f59e0b}
   .card .top{display:flex; align-items:center; gap:8px; margin-bottom:5px; flex-wrap:wrap}
   .uik-badge{font-family:Unbounded; font-size:12px; padding:3px 9px; border-radius:6px; background:var(--c); color:#111827; font-weight:800}
   .zone-tag{font-size:10px; color:var(--tc,#374151); font-weight:700; text-transform:uppercase; letter-spacing:.5px}
   .closed-badge{font-size:10.5px; color:#15803d; font-weight:700; background:#dcfce7; padding:2px 8px; border-radius:99px}
   .camera-badge{font-size:10.5px; color:#b91c1c; font-weight:700; background:#fee2e2; padding:2px 8px; border-radius:99px}
+  .sd-badge{font-size:10.5px; color:#b45309; font-weight:700; background:#fef3c7; padding:2px 8px; border-radius:99px}
   .m-cam-on{background:#fee2e2; color:#b91c1c; border:1px solid #fecaca}
   .m-cam-off{background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0}
+  .m-sd-on{background:#fef3c7; color:#b45309; border:1px solid #fde68a}
+  .m-sd-off{background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0}
   .nocoord{font-size:10px; color:#b91c1c; font-weight:700}
   .addr{font-size:12.5px; color:#374151; line-height:1.35}
   .card .acts{display:flex; gap:6px; margin-top:8px; flex-wrap:wrap}
@@ -267,13 +271,13 @@
 <script>
 /* ================= КООРДИНАТЫ (SEED) ================= */
 const SEED=[
-["ул. Маркова, д.6, МОУ Дмитровская средняя общеобразовательная школа № 9",[253,3723,3724],56.3493598,37.52366],
-["ул. Космонавтов, д.11, МОУ Дмитровская средняя общеобразовательная школа №8",[265,266,3727],56.3386103,37.5432235],
-["ул. Профессиональная, д. 21, Центр детского творчества «Радуга»",[247],56.354592,37.5212166],
-["мкр. Аверьянова, д.10 МОУ Дмитровская СОШ № 10",[250,3721,3722],56.3508706,37.527534],
+["ул. Маркова, д.6, МОУ Дмитровская СОШ № 9",[253,3723,3724],56.3493598,37.52366],
+["ул. Космонавтов, д.11, МОУ Дмитровская СОШ №8",[265,266,3727],56.3386103,37.5432235],
+["ул. Профессиональная, д. 21, ЦДТ «Радуга»",[247],56.354592,37.5212166],
+["мкр. Аверьянова, д.10, МОУ Дмитровская СОШ № 10",[250,3721,3722],56.3508706,37.527534],
 ["ул. Загорская, д. 64, МБУ ЦДК «Созвездие»",[255],56.3410545,37.5260984],
-["ул. Почтовая, д.16, корпус 2, Дмитровская центральная межпоселенческая библиотека",[259],56.3656287,37.5327041],
-["ул. Школьная, д.11 МОУ Дмитровская СОШ №1 им. В. И. Кузнецова",[261],56.338896,37.520119],
+["ул. Почтовая, д.16, корпус 2, библиотека",[259],56.3656287,37.5327041],
+["ул. Школьная, д.11, МОУ Дмитровская СОШ №1 им. В. И. Кузнецова",[261],56.338896,37.520119],
 ["ул. Школьная, д.11, МОУ Дмитровская СОШ №1",[262],56.338896,37.520119],
 ["г. Дмитров, ул. Школьная, д.14, МОУ Дмитровская СОШ №5",[3726],56.3380955,37.5211366],
 ["ДК «Содружество», ул. Профессиональная, д. 92",[242,3716],56.365672,37.5317409],
@@ -290,24 +294,24 @@ const SEED=[
 ["ул. Волгостроевская, д. 2а, филиал МОУ Дмитровская СОШ № 2",[260],56.3319452,37.519826],
 ["ул. 2-я Московская, дом 5, ГКУ МО Мособллес Дмитровский филиал",[267],56.3437613,37.5170268],
 ["пос. совхоза «Останкино», д.38А, МОУ Останкинская СОШ",[315],56.0565599,37.4022418],
-["с. Озерецкое, МБУ Спортивный комплекс «Урожай»",[316],56.0612802,37.4010931],
+["с. Озерецкое, МБУ СК «Урожай»",[316],56.0612802,37.4010931],
 ["д. Каменка, д.71А, МОУ Каменская СОШ № 1",[317],56.1787344,37.3065022],
 ["пос. дома отдыха «Горки», ДК «Бригантина»",[318],56.1942315,37.3448105],
 ["Адрес не указан в исходных данных ЦИК",[319],null,null],
 ["п. Некрасовский, ул. Парковая, д.1, МОУ Катуаровская СОШ",[3729],56.0990431,37.4977416],
-["п. Некрасовский, ул. Заводская, д.44, Дом культуры «Керамик»",[304],56.0963625,37.5005272],
-["п. Некрасовский, ул. Ушакова, д.27б, здание завода «Полимерконтейнер»",[305],56.0810358,37.4950487],
-["п. Некрасовский, мкр. Строителей, д.12, Дом культуры «Строитель»",[306],56.093,37.4956],
+["п. Некрасовский, ул. Заводская, д.44, ДК «Керамик»",[304],56.0963625,37.5005272],
+["п. Некрасовский, ул. Ушакова, д.27б, завод «Полимерконтейнер»",[305],56.0810358,37.4950487],
+["п. Некрасовский, мкр. Строителей, д.12, ДК «Строитель»",[306],56.093,37.4956],
 ["п. Некрасовский, мкр. Трудовая, Дом офицеров",[307],56.093,37.4956],
 ["п. Некрасовский, ул. Краснофлотская, д.10",[303],56.0968435,37.4892161],
 ["п. Некрасовский, мкр. Строителей, д.10, МОУ Черновская СОШ",[3730],56.093,37.4956],
 ["п. Икша, ул. Комсомольская, д. 20а, Дом культуры",[300],56.1742553,37.4984512],
-["п. Икша, ул. Комсомольская, д. 19, Спортивный комплекс «Икша»",[301],56.1740124,37.4977685],
+["п. Икша, ул. Комсомольская, д. 19, СК «Икша»",[301],56.1740124,37.4977685],
 ["пос. ОПХ «Ермолино», ул. Центральная, д. 13, Дом культуры",[302],56.1498485,37.490445],
 ["п. Икша, ул. Рабочая, д.18, МОУ Икшинская СОШ",[3728],56.1780602,37.4978391],
 ["Яхрома, ул. Кирьянова, д.12а, МОУ Яхромская СОШ № 2",[281],56.2911469,37.4772202],
 ["Яхрома, ул. Бусалова, д.21, Детский сад № 18 «Бригантина»",[283],56.2948862,37.4726343],
-["Яхрома, ул. Заречная, д. 2, Дом культуры «Яхрома»",[284],56.2906411,37.4862729],
+["Яхрома, ул. Заречная, д. 2, ДК «Яхрома»",[284],56.2906411,37.4862729],
 ["Яхрома, ул. Ленина, д.17, Шахматный клуб",[285],56.2852989,37.4850689],
 ["Яхрома, ул. Конярова, д.9, Яхромский территориально-медицинский комплекс",[286],56.2854668,37.4789874],
 ["Яхрома, мкр. Левобережье, д.17, МОУ Яхромская СОШ №1",[287,322],56.2838118,37.4890419],
@@ -334,7 +338,7 @@ const SEED=[
 ["пос. Новосиньково, д.15, Дмитровский техникум",[310],56.3763791,37.3282329],
 ["пос. Автополигон, 12а, МДОУ детский сад № 65 «Колосок»",[311],56.3505315,37.3265588],
 ["пос. Новосиньково, мкр. Дуброво, дом 2, кв.76",[312],56.3763791,37.3282329],
-["с. Семеновское, 98А, МУ «Молодежный центр «Синьково»",[313],56.3220899,37.1244336],
+["с. Семеновское, 98А, Молодёжный центр «Синьково»",[313],56.3220899,37.1244336],
 ["с. Абрамцево, д.16А, СДК «Бунятинский»",[314],56.4067915,37.239253],
 ["пос. Новосиньково, д.60, МОУ Синьковская СОШ №1",[3731],56.3763791,37.3282329],
 ["пос. Горшково, д.63, ДК «Расцвет»",[274,275],56.377767,37.4125248],
@@ -497,13 +501,14 @@ function repairGroups(gs){
 function defItems(){
   return DEFAULTS.map(r=>{
     const c=seedFor(r[1]);
-    return {id:r[0],uik:r[1],addr:r[2],group:'g'+r[3],lat:c?c.lat:null,lng:c?c.lng:null,closed:false,closedBy:'',closedAt:null,cameraDown:false,cameraDownAt:null};
+    return {id:r[0],uik:r[1],addr:r[2],group:'g'+r[3],lat:c?c.lat:null,lng:c?c.lng:null,closed:false,closedBy:'',closedAt:null,cameraDown:false,cameraDownAt:null,noSdCard:false,noSdCardAt:null};
   });
 }
 function normItem(x){
   return {id:x.id,uik:x.uik,addr:x.addr,group:x.group||'g0',lat:x.lat??null,lng:x.lng??null,
           closed:!!x.closed,closedBy:x.closedBy||'',closedAt:x.closedAt||null,
-          cameraDown:!!x.cameraDown,cameraDownAt:x.cameraDownAt||null};
+          cameraDown:!!x.cameraDown,cameraDownAt:x.cameraDownAt||null,
+          noSdCard:!!x.noSdCard,noSdCardAt:x.noSdCardAt||null};
 }
 function loadLocal(){
   try{const s=localStorage.getItem(KEY5); if(s){const d=JSON.parse(s); if(d&&d.groups&&d.items) return {groups:repairGroups(d.groups),items:d.items};}}catch(e){}
@@ -536,8 +541,8 @@ function fmtDT(ts){if(!ts)return ''; const d=new Date(ts); return d.toLocaleStri
    токен, найденный в закоммиченном коде публичного репозитория. Токен
    каждый вводит сам через кнопку «🔑 включить запись» в интерфейсе —
    он сохраняется только в браузере (localStorage), не в git. */
-const GH_OWNER  = 'shiki008';        // например: shiki-dev
-const GH_REPO   = 'uik-map';        // например: uik-map
+const GH_OWNER  = 'ВАШ-ЛОГИН-НА-GITHUB';        // например: shiki-dev
+const GH_REPO   = 'НАЗВАНИЕ-РЕПОЗИТОРИЯ';        // например: uik-map
 const GH_BRANCH = 'main';                        // ветка, где живут Pages
 const GH_PATH   = 'state.json';                  // файл-хранилище в корне репозитория
 const TOKEN_KEY = 'uikmap_gh_token';             // ключ в localStorage браузера
@@ -715,16 +720,19 @@ function popupHTML(i){
     ?`<div class="pop-st" style="color:#15803d">🔒 Закрыт — ${i.closedBy||'—'}${i.closedAt?` (${fmtDT(i.closedAt)})`:''}</div>`
     :`<div class="pop-st" style="color:#6b7280">🔓 Открыт</div>`;
   const cam=i.cameraDown?`<div class="pop-st" style="color:#b91c1c">📷⚠️ Камера упала${i.cameraDownAt?` (${fmtDT(i.cameraDownAt)})`:''}</div>`:'';
+  const sd=i.noSdCard?`<div class="pop-st" style="color:#b45309">💳⚠️ Нет карты памяти${i.noSdCardAt?` (${fmtDT(i.noSdCardAt)})`:''}</div>`:'';
   return `<div class="pop">
     <div class="pop-uik">УИК № ${i.uik}</div>
     <div class="pop-addr">${i.addr}</div>
     <div class="pop-zone" style="color:${darken(g.color)}">● ${g.name}</div>
     ${st}
     ${cam}
+    ${sd}
     <div class="acts">
       <a class="mini m-rt" target="_blank" href="${routeUrl(i)}">🚗 Маршрут</a>
       <button class="mini ${i.closed?'m-op':'m-cl'}" onclick="popupToggle('${i.id}')">${i.closed?'🔓 Открыть':'🔒 Закрыть'}</button>
       <button class="mini ${i.cameraDown?'m-cam-off':'m-cam-on'}" onclick="toggleCamera('${i.id}')">${i.cameraDown?'📷 Камера в порядке':'📷⚠️ Камера упала'}</button>
+      <button class="mini ${i.noSdCard?'m-sd-off':'m-sd-on'}" onclick="toggleSdCard('${i.id}')">${i.noSdCard?'💳 Карта на месте':'💳⚠️ Нет карты памяти'}</button>
       <button class="mini m-ed" onclick="openModal('${i.id}')">✏️</button>
     </div></div>`;
 }
@@ -734,7 +742,7 @@ function filtered(){
   const q=filterQ.toLowerCase();
   return items.filter(i=>
     (filterGroup==='all'||i.group===filterGroup)&&
-    (statusFilter==='all'||(statusFilter==='closed'&&i.closed)||(statusFilter==='open'&&!i.closed)||(statusFilter==='camera'&&i.cameraDown))&&
+    (statusFilter==='all'||(statusFilter==='closed'&&i.closed)||(statusFilter==='open'&&!i.closed)||(statusFilter==='camera'&&i.cameraDown)||(statusFilter==='sd'&&i.noSdCard))&&
     (!q||String(i.uik).toLowerCase().includes(q)||i.addr.toLowerCase().includes(q))
   );
 }
@@ -746,8 +754,8 @@ function renderMarkers(){
     const g=grp(i.group);
     const m=L.circleMarker([i.lat,i.lng],{
       radius:9,color:'#1a0736',weight:2.5,
-      fillColor:i.cameraDown?'#ef4444':(i.closed?'#9ca3af':g.color),
-      fillOpacity:i.closed&&!i.cameraDown?.85:1
+      fillColor:i.cameraDown?'#ef4444':(i.noSdCard?'#f59e0b':(i.closed?'#9ca3af':g.color)),
+      fillOpacity:i.closed&&!i.cameraDown&&!i.noSdCard?.85:1
     });
     m.bindPopup(popupHTML(i));
     m.on('click',()=>highlight(i.id));
@@ -761,37 +769,39 @@ function renderList(){
   ? ('☁️ общая'+(hasToken()?' (запись включена)':' (только чтение)')+(lastSyncAt?' · синхр. '+lastSyncAt.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',second:'2-digit'}):''))
   : ('💾 локальная ('+remoteStatus+')');
   const cnt=document.getElementById('counter');
-  cnt.innerHTML=`${mode} · Показано: ${f.length} из ${items.length} · 🔒 Закрыто: ${items.filter(i=>i.closed).length} из ${items.length} · 📷⚠️ Камера упала: ${items.filter(i=>i.cameraDown).length} · <a href="#" id="tokBtn" style="color:inherit;text-decoration:underline">${hasToken()?'сменить ключ':'🔑 включить запись'}</a>`;
+  cnt.innerHTML=`${mode} · Показано: ${f.length} из ${items.length} · 🔒 Закрыто: ${items.filter(i=>i.closed).length} из ${items.length} · 📷⚠️ Камера упала: ${items.filter(i=>i.cameraDown).length} · 💳⚠️ Нет карты памяти: ${items.filter(i=>i.noSdCard).length} · <a href="#" id="tokBtn" style="color:inherit;text-decoration:underline">${hasToken()?'сменить ключ':'🔑 включить запись'}</a>`;
   const tb=document.getElementById('tokBtn'); if(tb) tb.onclick=(e)=>{e.preventDefault(); promptToken();};
   document.getElementById('pbar').style.width=(items.length?Math.round(items.filter(i=>i.closed).length/items.length*100):0)+'%';
   f.forEach(i=>{
     const g=grp(i.group);
     const d=document.createElement('div');
-    d.className='card'+(i.closed?' closed':'')+(i.cameraDown?' camera-down':'');
+    d.className='card'+(i.closed?' closed':'')+(i.cameraDown?' camera-down':'')+(i.noSdCard&&!i.cameraDown?' no-sd':'');
     d.style.setProperty('--c',g.color); d.style.setProperty('--tc',darken(g.color));
-    d.innerHTML=`<div class="top"><span class="uik-badge" style="--c:${i.cameraDown?'#ef4444':(i.closed?'#22c55e':g.color)}">УИК ${i.uik}</span><span class="zone-tag">${g.name}</span>${i.lat==null?'<span class="nocoord">нет координат</span>':''}${i.closed?`<span class="closed-badge">✔ ${i.closedBy||'закрыт'} · ${fmtDT(i.closedAt)}</span>`:''}${i.cameraDown?`<span class="camera-badge">📷⚠️ камера упала</span>`:''}</div>
+    d.innerHTML=`<div class="top"><span class="uik-badge" style="--c:${i.cameraDown?'#ef4444':(i.noSdCard?'#f59e0b':(i.closed?'#22c55e':g.color))}">УИК ${i.uik}</span><span class="zone-tag">${g.name}</span>${i.lat==null?'<span class="nocoord">нет координат</span>':''}${i.closed?`<span class="closed-badge">✔ ${i.closedBy||'закрыт'} · ${fmtDT(i.closedAt)}</span>`:''}${i.cameraDown?`<span class="camera-badge">📷⚠️ камера упала</span>`:''}${i.noSdCard?`<span class="sd-badge">💳⚠️ нет карты памяти</span>`:''}</div>
       <div class="addr">${i.addr}</div>
       <div class="acts">
         <button class="mini m-go">📍 На карте</button>
         ${i.lat!=null?`<a class="mini m-rt" target="_blank" href="${routeUrl(i)}">🚗 Маршрут</a>`:''}
         <button class="mini ${i.closed?'m-op':'m-cl'}">${i.closed?'🔓 Открыть':'🔒 Закрыть'}</button>
         <button class="mini ${i.cameraDown?'m-cam-off':'m-cam-on'}">${i.cameraDown?'📷 Камера в порядке':'📷⚠️ Камера упала'}</button>
+        <button class="mini ${i.noSdCard?'m-sd-off':'m-sd-on'}">${i.noSdCard?'💳 Карта на месте':'💳⚠️ Нет карты памяти'}</button>
         <button class="mini m-ed">✏️</button>
       </div>`;
     d.querySelector('.m-go').onclick=()=>flyTo(i);
     d.querySelector('.m-ed').onclick=()=>openModal(i.id);
     d.querySelector(i.closed?'.m-op':'.m-cl').onclick=()=>popupToggle(i.id);
     d.querySelector(i.cameraDown?'.m-cam-off':'.m-cam-on').onclick=(e)=>{e.stopPropagation(); toggleCamera(i.id);};
+    d.querySelector(i.noSdCard?'.m-sd-off':'.m-sd-on').onclick=(e)=>{e.stopPropagation(); toggleSdCard(i.id);};
     d.onclick=e=>{if(e.target.tagName!=='BUTTON'&&e.target.tagName!=='A')flyTo(i);};
     list.appendChild(d);
   });
 }
 function renderStatusChips(){
   const box=document.getElementById('statusChips'); box.innerHTML='';
-  [['all','Все'],['open','🔓 Открытые'],['closed','🔒 Закрытые'],['camera','📷⚠️ Камера упала']].forEach(([v,l])=>{
+  [['all','Все'],['open','🔓 Открытые'],['closed','🔒 Закрытые'],['camera','📷⚠️ Камера упала'],['sd','💳⚠️ Нет карты памяти']].forEach(([v,l])=>{
     const c=document.createElement('span');
     c.className='chip'+(statusFilter===v?' on':'');
-    c.style.setProperty('--c', v==='closed'?'#22c55e':v==='open'?'#2563eb':v==='camera'?'#ef4444':'#9ca3af');
+    c.style.setProperty('--c', v==='closed'?'#22c55e':v==='open'?'#2563eb':v==='camera'?'#ef4444':v==='sd'?'#f59e0b':'#9ca3af');
     c.textContent=l;
     c.onclick=()=>{statusFilter=(statusFilter===v?'all':v); renderMapList();};
     box.appendChild(c);
@@ -893,6 +903,13 @@ function toggleCamera(id){
   i.cameraDownAt=i.cameraDown?Date.now():null;
   save(); renderMapList();
   toast(i.cameraDown?`УИК ${i.uik}: камера упала ⚠️`:`УИК ${i.uik}: камера в порядке 📷`);
+}
+function toggleSdCard(id){
+  const i=items.find(x=>x.id==id); if(!i)return;
+  i.noSdCard=!i.noSdCard;
+  i.noSdCardAt=i.noSdCard?Date.now():null;
+  save(); renderMapList();
+  toast(i.noSdCard?`УИК ${i.uik}: нет карты памяти ⚠️`:`УИК ${i.uik}: карта памяти на месте 💳`);
 }
 
 /* ================= ГРУППЫ ================= */
@@ -1041,7 +1058,7 @@ function importJSON(ev){
         items=d.filter(x=>x.uik&&x.addr).map((x,i)=>normItem({id:x.id??('i'+i+'_'+Date.now()),uik:String(x.uik),addr:String(x.addr),group:'g'+(x.zone??0),lat:x.lat!=null?+x.lat:null,lng:x.lng!=null?+x.lng:null,closed:!!x.closed,closedBy:x.closedBy||'',closedAt:x.closedAt||null}));
       }else if(d&&Array.isArray(d.groups)&&Array.isArray(d.items)){
         groups=repairGroups(d.groups);
-        items=d.items.filter(x=>x.uik&&x.addr).map((x,i)=>normItem({id:x.id??('i'+i+'_'+Date.now()),uik:String(x.uik),addr:String(x.addr),group:groups.some(g=>g.id===x.group)?x.group:groups[0].id,lat:x.lat!=null?+x.lat:null,lng:x.lng!=null?+x.lng:null,closed:!!x.closed,closedBy:x.closedBy||'',closedAt:x.closedAt||null,cameraDown:!!x.cameraDown,cameraDownAt:x.cameraDownAt||null}));
+        items=d.items.filter(x=>x.uik&&x.addr).map((x,i)=>normItem({id:x.id??('i'+i+'_'+Date.now()),uik:String(x.uik),addr:String(x.addr),group:groups.some(g=>g.id===x.group)?x.group:groups[0].id,lat:x.lat!=null?+x.lat:null,lng:x.lng!=null?+x.lng:null,closed:!!x.closed,closedBy:x.closedBy||'',closedAt:x.closedAt||null,cameraDown:!!x.cameraDown,cameraDownAt:x.cameraDownAt||null,noSdCard:!!x.noSdCard,noSdCardAt:x.noSdCardAt||null}));
         if(d.rev) sharedRev=d.rev;
       }else throw 0;
       save(); renderAll(); fitToItems();
