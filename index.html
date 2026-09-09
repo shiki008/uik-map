@@ -494,21 +494,34 @@ const DEFAULTS=[
 const KEY5="gadske_vybory_v5";
 function defGroups(){return DEFAULT_GROUPS.map(g=>({...g}));}
 function repairGroups(gs){
-  const out=(Array.isArray(gs)&&gs.length)?gs.map(g=>({id:g.id,name:String(g.name),color:g.color||'#9ca3af'})):[];
+  const out=(Array.isArray(gs)&&gs.length)?gs.map(g=>({...g,name:String(g.name),color:g.color||'#9ca3af'})):[];
   for(const dg of DEFAULT_GROUPS){ if(!out.some(g=>g.id===dg.id)) out.push({...dg}); }
   return out;
+}
+function mergeById(localArr, remoteArr){
+  // Объединяет два массива по id: если запись есть только с одной стороны — сохраняем её;
+  // если есть с обеих — оставляем ту, что менялась позже (updatedAt), при равенстве — локальную.
+  const map={};
+  (remoteArr||[]).forEach(x=>{ if(x&&x.id!=null) map[x.id]=x; });
+  (localArr||[]).forEach(x=>{
+    if(!x||x.id==null) return;
+    const r=map[x.id];
+    if(!r || (x.updatedAt||0) >= (r.updatedAt||0)) map[x.id]=x;
+  });
+  return Object.values(map);
 }
 function defItems(){
   return DEFAULTS.map(r=>{
     const c=seedFor(r[1]);
-    return {id:r[0],uik:r[1],addr:r[2],group:'g'+r[3],lat:c?c.lat:null,lng:c?c.lng:null,closed:false,closedBy:'',closedAt:null,cameraDown:false,cameraDownAt:null,noSdCard:false,noSdCardAt:null};
+    return {id:r[0],uik:r[1],addr:r[2],group:'g'+r[3],lat:c?c.lat:null,lng:c?c.lng:null,closed:false,closedBy:'',closedAt:null,cameraDown:false,cameraDownAt:null,noSdCard:false,noSdCardAt:null,updatedAt:0};
   });
 }
 function normItem(x){
   return {id:x.id,uik:x.uik,addr:x.addr,group:x.group||'g0',lat:x.lat??null,lng:x.lng??null,
           closed:!!x.closed,closedBy:x.closedBy||'',closedAt:x.closedAt||null,
           cameraDown:!!x.cameraDown,cameraDownAt:x.cameraDownAt||null,
-          noSdCard:!!x.noSdCard,noSdCardAt:x.noSdCardAt||null};
+          noSdCard:!!x.noSdCard,noSdCardAt:x.noSdCardAt||null,
+          updatedAt:x.updatedAt||0};
 }
 function loadLocal(){
   try{const s=localStorage.getItem(KEY5); if(s){const d=JSON.parse(s); if(d&&d.groups&&d.items) return {groups:repairGroups(d.groups),items:d.items};}}catch(e){}
@@ -617,7 +630,9 @@ async function initRemote(){
       try{
         const pd=JSON.parse(txt);
         if(pd&&Array.isArray(pd.items)&&Array.isArray(pd.groups)){
-          groups=repairGroups(pd.groups); items=pd.items; sharedRev=pd.rev||0;
+          items=mergeById(items, pd.items);
+          groups=repairGroups(mergeById(groups, pd.groups));
+          sharedRev=Math.max(sharedRev, pd.rev||0);
           try{localStorage.setItem(KEY5,JSON.stringify({groups,items}));}catch(e){}
           lastSyncAt=new Date(); lastPushed=txt;
           renderAll(); fitToItems();
@@ -643,6 +658,26 @@ async function pushRemote(retry){
     return;
   }
   try{
+    // сначала подтягиваем самую свежую версию с сервера и сливаем с локальной —
+    // это и не даёт двум устройствам затирать правки друг друга целиком
+    if(!retry){
+      try{
+        const rr=await fetch(API+'?ref='+GH_BRANCH+'&t='+Date.now(),{headers:ghHeaders(false),cache:'no-store'});
+        if(rr.ok){
+          const dd=await rr.json();
+          ghSha=dd.sha;
+          const rtxt=b64ToUtf8(dd.content||'');
+          if(rtxt&&rtxt!=='null'){
+            const rpd=JSON.parse(rtxt);
+            if(rpd&&Array.isArray(rpd.items)){
+              items=mergeById(items, rpd.items);
+              groups=repairGroups(mergeById(groups, rpd.groups||[]));
+              sharedRev=Math.max(sharedRev, rpd.rev||0);
+            }
+          }
+        }else if(rr.status===404){ ghSha=null; }
+      }catch(e){ /* нет связи для предварительного слияния — пушим как есть */ }
+    }
     sharedRev=Date.now();
     const payload=JSON.stringify({rev:sharedRev,groups,items});
     const body={message:'update state '+new Date().toISOString(), content:utf8ToB64(payload), branch:GH_BRANCH};
@@ -651,11 +686,11 @@ async function pushRemote(retry){
     if(r.ok){
       const d=await r.json();
       ghSha=d.content.sha;
-      lastPushed=payload; lastSyncAt=new Date(); remoteStatus='ок'; renderList();
+      lastPushed=payload; lastSyncAt=new Date(); remoteStatus='ок';
+      try{localStorage.setItem(KEY5,JSON.stringify({groups,items}));}catch(e){}
+      renderMapList();
     }else if((r.status===409||r.status===422)&&!retry){
-      // конфликт версий: подтягиваем актуальный sha и пробуем ещё раз
-      const rr=await fetch(API+'?ref='+GH_BRANCH+'&t='+Date.now(),{headers:ghHeaders(false),cache:'no-store'});
-      if(rr.ok){const dd=await rr.json(); ghSha=dd.sha;}
+      // конфликт версий: кто-то успел записать между нашим GET и PUT — повторяем слияние и попытку один раз
       await pushRemote(true);
     }else if(r.status===401){
       remoteStatus='ключ недействителен'; toast('🔑 Ключ не подходит — введите новый'); promptToken();
@@ -676,16 +711,25 @@ async function pullRemote(){
     if(!txt||txt==='null'||txt===lastPushed){ ghSha=d.sha; return; }
     const pd=JSON.parse(txt);
     if(!pd||!Array.isArray(pd.items)) return;
-    if((pd.rev||0)>sharedRev){
-      groups=repairGroups(pd.groups); items=pd.items; sharedRev=pd.rev||0; ghSha=d.sha;
-      try{localStorage.setItem(KEY5,JSON.stringify({groups,items}));}catch(e){}
-      lastPushed=txt; lastSyncAt=new Date();
-      renderAll(); fitToItems();
+    const mergedItems=mergeById(items, pd.items);
+    const mergedGroups=repairGroups(mergeById(groups, pd.groups||[]));
+    const changed = JSON.stringify(mergedItems)!==JSON.stringify(items) || JSON.stringify(mergedGroups)!==JSON.stringify(groups);
+    items=mergedItems; groups=mergedGroups; ghSha=d.sha; sharedRev=Math.max(sharedRev, pd.rev||0);
+    try{localStorage.setItem(KEY5,JSON.stringify({groups,items}));}catch(e){}
+    if(changed){
+      lastSyncAt=new Date();
+      renderMapList();
       toast('☁️ Получены обновления');
-    }else{
-      ghSha=d.sha;
     }
   }catch(e){}
+}
+async function forceSaveNow(){
+  if(!sharedMode){ toast('Нет общего режима — проверьте настройки GH_OWNER/GH_REPO'); return; }
+  if(!hasToken()){ promptToken(); return; }
+  toast('💾 Сохраняю...');
+  clearTimeout(pushT);
+  await pushRemote();
+  if(remoteStatus==='ок') toast('💾 Сохранено и синхронизировано ✅');
 }
 function fitToItems(){
   if(!map) return;
@@ -769,7 +813,8 @@ function renderList(){
   ? ('☁️ общая'+(hasToken()?' (запись включена)':' (только чтение)')+(lastSyncAt?' · синхр. '+lastSyncAt.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',second:'2-digit'}):''))
   : ('💾 локальная ('+remoteStatus+')');
   const cnt=document.getElementById('counter');
-  cnt.innerHTML=`${mode} · Показано: ${f.length} из ${items.length} · 🔒 Закрыто: ${items.filter(i=>i.closed).length} из ${items.length} · 📷⚠️ Камера упала: ${items.filter(i=>i.cameraDown).length} · 💳⚠️ Нет карты памяти: ${items.filter(i=>i.noSdCard).length} · <a href="#" id="tokBtn" style="color:inherit;text-decoration:underline">${hasToken()?'сменить ключ':'🔑 включить запись'}</a>`;
+  cnt.innerHTML=`${mode} · Показано: ${f.length} из ${items.length} · 🔒 Закрыто: ${items.filter(i=>i.closed).length} из ${items.length} · 📷⚠️ Камера упала: ${items.filter(i=>i.cameraDown).length} · 💳⚠️ Нет карты памяти: ${items.filter(i=>i.noSdCard).length} · <a href="#" id="tokBtn" style="color:inherit;text-decoration:underline">${hasToken()?'сменить ключ':'🔑 включить запись'}</a>${hasToken()?' · <a href="#" id="saveNowBtn" style="color:inherit;text-decoration:underline">💾 Сохранить сейчас</a>':''}`;
+  const snb=document.getElementById('saveNowBtn'); if(snb) snb.onclick=(e)=>{e.preventDefault(); forceSaveNow();};
   const tb=document.getElementById('tokBtn'); if(tb) tb.onclick=(e)=>{e.preventDefault(); promptToken();};
   document.getElementById('pbar').style.width=(items.length?Math.round(items.filter(i=>i.closed).length/items.length*100):0)+'%';
   f.forEach(i=>{
@@ -830,15 +875,15 @@ function renderGroupsPanel(){
       <input class="gname" value="${g.name.replace(/"/g,'&quot;')}">
       <span class="gcount" title="участков в группе">${cnt}</span>
       <button class="gdel" title="Удалить группу">✕</button>`;
-    row.querySelector('.gcolor').oninput=e=>{g.color=e.target.value; save(); renderMapList();};
-    row.querySelector('.gname').oninput=e=>{g.name=e.target.value; save(); renderChips(); renderMarkers(); renderList();};
+    row.querySelector('.gcolor').oninput=e=>{g.color=e.target.value; g.updatedAt=Date.now(); save(); renderMapList();};
+    row.querySelector('.gname').oninput=e=>{g.name=e.target.value; g.updatedAt=Date.now(); save(); renderChips(); renderMarkers(); renderList();};
     row.querySelector('.gdel').onclick=()=>deleteGroup(g.id);
     p.appendChild(row);
   });
   const add=document.createElement('button');
   add.className='gadd'; add.textContent='➕ Добавить группу';
   add.onclick=()=>{
-    groups.push({id:'g'+Date.now(),name:'Новая группа '+(groups.length+1),color:PALETTE[groups.length%PALETTE.length]});
+    groups.push({id:'g'+Date.now(),name:'Новая группа '+(groups.length+1),color:PALETTE[groups.length%PALETTE.length],updatedAt:Date.now()});
     save(); renderAll(); toast('Группа добавлена 🎨');
   };
   p.appendChild(add);
@@ -888,26 +933,26 @@ function confirmClose(){
   const name=document.getElementById('close-name').value.trim();
   if(!name){toast('Введите, кто закрыл участок!');return;}
   const i=items.find(x=>x.id==closingId); if(!i)return;
-  i.closed=true; i.closedBy=name; i.closedAt=Date.now();
+  i.closed=true; i.closedBy=name; i.closedAt=Date.now(); i.updatedAt=Date.now();
   save(); hideCloseModal(); renderMapList();
   toast(`УИК ${i.uik} закрыт (${name}) 🔒`);
 }
 function reopenItem(id){
   const i=items.find(x=>x.id==id); if(!i)return;
-  i.closed=false; i.closedBy=''; i.closedAt=null;
+  i.closed=false; i.closedBy=''; i.closedAt=null; i.updatedAt=Date.now();
   save(); renderMapList(); toast(`УИК ${i.uik} снова открыт 🔓`);
 }
 function toggleCamera(id){
   const i=items.find(x=>x.id==id); if(!i)return;
   i.cameraDown=!i.cameraDown;
-  i.cameraDownAt=i.cameraDown?Date.now():null;
+  i.cameraDownAt=i.cameraDown?Date.now():null; i.updatedAt=Date.now();
   save(); renderMapList();
   toast(i.cameraDown?`УИК ${i.uik}: камера упала ⚠️`:`УИК ${i.uik}: камера в порядке 📷`);
 }
 function toggleSdCard(id){
   const i=items.find(x=>x.id==id); if(!i)return;
   i.noSdCard=!i.noSdCard;
-  i.noSdCardAt=i.noSdCard?Date.now():null;
+  i.noSdCardAt=i.noSdCard?Date.now():null; i.updatedAt=Date.now();
   save(); renderMapList();
   toast(i.noSdCard?`УИК ${i.uik}: нет карты памяти ⚠️`:`УИК ${i.uik}: карта памяти на месте 💳`);
 }
@@ -920,7 +965,7 @@ function deleteGroup(gid){
   const cnt=items.filter(i=>i.group===gid).length;
   if(!confirm(`Удалить группу «${g.name}»?${cnt?` Её участки (${cnt}) будут перенесены в другую группу.`:''}`))return;
   const target=groups.find(x=>x.id!==gid);
-  items.forEach(i=>{if(i.group===gid)i.group=target.id;});
+  items.forEach(i=>{if(i.group===gid){i.group=target.id; i.updatedAt=Date.now();}});
   groups=groups.filter(x=>x.id!==gid);
   if(filterGroup===gid)filterGroup='all';
   save(); renderAll(); toast('Группа удалена 🗑');
@@ -1026,10 +1071,10 @@ function saveModal(){
   if(editingId!=null){
     const i=items.find(x=>x.id==editingId);
     const wasClosed=i.closed;
-    Object.assign(i,{uik,addr,group,lat:hasCoords?lat:null,lng:hasCoords?lng:null,closed,closedBy:closed?closedBy:'',closedAt:closed?(wasClosed?i.closedAt:Date.now()):null});
+    Object.assign(i,{uik,addr,group,lat:hasCoords?lat:null,lng:hasCoords?lng:null,closed,closedBy:closed?closedBy:'',closedAt:closed?(wasClosed?i.closedAt:Date.now()):null,updatedAt:Date.now()});
     toast('Участок УИК '+uik+' обновлён ✅');
   }else{
-    items.push({id:'u'+Date.now(),uik,addr,group,lat:hasCoords?lat:null,lng:hasCoords?lng:null,closed,closedBy:closed?closedBy:'',closedAt:closed?Date.now():null});
+    items.push({id:'u'+Date.now(),uik,addr,group,lat:hasCoords?lat:null,lng:hasCoords?lng:null,closed,closedBy:closed?closedBy:'',closedAt:closed?Date.now():null,cameraDown:false,cameraDownAt:null,noSdCard:false,noSdCardAt:null,updatedAt:Date.now()});
     toast('Участок УИК '+uik+' добавлен 🎉');
   }
   save(); closeModal(); renderAll();
@@ -1058,7 +1103,7 @@ function importJSON(ev){
         items=d.filter(x=>x.uik&&x.addr).map((x,i)=>normItem({id:x.id??('i'+i+'_'+Date.now()),uik:String(x.uik),addr:String(x.addr),group:'g'+(x.zone??0),lat:x.lat!=null?+x.lat:null,lng:x.lng!=null?+x.lng:null,closed:!!x.closed,closedBy:x.closedBy||'',closedAt:x.closedAt||null}));
       }else if(d&&Array.isArray(d.groups)&&Array.isArray(d.items)){
         groups=repairGroups(d.groups);
-        items=d.items.filter(x=>x.uik&&x.addr).map((x,i)=>normItem({id:x.id??('i'+i+'_'+Date.now()),uik:String(x.uik),addr:String(x.addr),group:groups.some(g=>g.id===x.group)?x.group:groups[0].id,lat:x.lat!=null?+x.lat:null,lng:x.lng!=null?+x.lng:null,closed:!!x.closed,closedBy:x.closedBy||'',closedAt:x.closedAt||null,cameraDown:!!x.cameraDown,cameraDownAt:x.cameraDownAt||null,noSdCard:!!x.noSdCard,noSdCardAt:x.noSdCardAt||null}));
+        items=d.items.filter(x=>x.uik&&x.addr).map((x,i)=>normItem({id:x.id??('i'+i+'_'+Date.now()),uik:String(x.uik),addr:String(x.addr),group:groups.some(g=>g.id===x.group)?x.group:groups[0].id,lat:x.lat!=null?+x.lat:null,lng:x.lng!=null?+x.lng:null,closed:!!x.closed,closedBy:x.closedBy||'',closedAt:x.closedAt||null,cameraDown:!!x.cameraDown,cameraDownAt:x.cameraDownAt||null,noSdCard:!!x.noSdCard,noSdCardAt:x.noSdCardAt||null,updatedAt:Date.now()}));
         if(d.rev) sharedRev=d.rev;
       }else throw 0;
       save(); renderAll(); fitToItems();
